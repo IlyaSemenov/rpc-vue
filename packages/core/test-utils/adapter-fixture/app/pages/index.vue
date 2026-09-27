@@ -52,5 +52,6 @@ function shareData() {
     <button id="next" @click="postId++">Next post</button>
     <button id="invalidate" @click="rpc.blog.posts.invalidate()">Refresh posts</button>
     <button id="fail" @click="failure.refetch()">Fail query</button>
+    <NuxtLink id="awaited-error" to="/awaited-error">Open failed query</NuxtLink>
   </main>
 </template>

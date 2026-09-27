@@ -119,7 +119,8 @@ test("HTTP integration preserves formatted error data and error identity through
     queryClient.getQueryCache().subscribe((event) => {
       if (event.type === "updated" && event.action.type === "error") seenError = event.action.error
     })
-    const query = await scope.run(() => trpc.fail.useQuery())!
+    const query = scope.run(() => trpc.fail.useQuery())!
+    await expect(Promise.resolve(query)).rejects.toBeInstanceOf(TRPCClientError)
     expect(query.error.value).toBeInstanceOf(TRPCClientError)
     expect(query.error.value?.data?.field).toBe("title")
     expect(seenError).toBe(query.error.value)

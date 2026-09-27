@@ -315,19 +315,19 @@ describe("query catching", () => {
     const { failCalls, findCalls, orpc, scope, unexpectedCalls } = setup(queryClient)
 
     const declared = scope.run(() => orpc.find.useQuery({ id: -1 }))!
-    await declared
+    await expect(Promise.resolve(declared)).rejects.toHaveProperty("code", "NOT_FOUND")
     expect(declared.error.value).toHaveProperty("code", "NOT_FOUND")
     expect(findCalls()).toBe(1)
 
     const undeclaredProcedure = scope.run(() => orpc.fail.useQuery())!
-    await undeclaredProcedure
+    await expect(Promise.resolve(undeclaredProcedure)).rejects.toBeInstanceOf(ORPCError)
     expect(undeclaredProcedure.error.value).toBeInstanceOf(ORPCError)
     expect(failCalls()).toBe(3)
 
     const undeclaredError = scope.run(() =>
       orpc.unexpected.useQuery(undefined, { catching: { NOT_FOUND: null } }),
     )!
-    await undeclaredError
+    await expect(Promise.resolve(undeclaredError)).rejects.toHaveProperty("message", "Unexpected")
     expect(undeclaredError.data.value).toBeUndefined()
     expect(undeclaredError.error.value).toHaveProperty("message", "Unexpected")
     expect(undeclaredError.status.value).toBe("error")

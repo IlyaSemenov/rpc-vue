@@ -234,6 +234,9 @@ async function inference() {
   })
   type Post = { readonly id: number; readonly author: { readonly name: string } }
   expectTypeOf(query.data.value).toEqualTypeOf<Post | undefined>()
+  orpc.get.useQuery({ id: 1 }, { rejectOnError: false })
+  // @ts-expect-error Await rejection is controlled by rejectOnError, not TanStack's watcher.
+  orpc.get.useQuery({ id: 1 }, { throwOnError: true })
   query.data.value = {
     id: 2,
     author: { name: "new" },

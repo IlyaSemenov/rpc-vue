@@ -75,10 +75,19 @@ export type SelectedQueryResult<TSelected, TError, TDefault = undefined> = Omit<
 export type ReactiveQueryOptions<TOutput, TError, TSelected = TOutput> = Omit<
   ResolveOptions<UseQueryOptions<TOutput, TError, TSelected>>,
   // Query-local hashing would split one input between observers and imperative cache access.
-  "queryKey" | "queryFn" | "queryKeyHashFn" | "queryHash" | "select" | "shallow" | "enabled"
+  | "queryKey"
+  | "queryFn"
+  | "queryKeyHashFn"
+  | "queryHash"
+  | "select"
+  | "shallow"
+  | "enabled"
+  | "throwOnError"
 > & {
   /** Control automatic fetching reactively; disabled queries can still expose cached data. */
   enabled?: MaybeRefOrGetter<boolean | undefined>
+  /** Set false to resolve an awaited initial query with error state instead of rejecting. */
+  rejectOnError?: boolean
   /** Use false to start the query only after the component mounts in the browser. */
   server?: boolean
 }
@@ -182,7 +191,10 @@ interface ReactiveQueryIntegration {
   ) => QueryObserverOptions<unknown, Error>
   /** The cache owner resolved by the client factory. */
   queryClient: QueryClient
-  /** Return false to never retry this error; otherwise the query's `retry` option, including QueryClient defaults, decides. */
+  /**
+   * Return false to never retry this error; otherwise the query's `retry` option,
+   * including QueryClient defaults, decides.
+   */
   shouldRetryError?: (error: unknown) => boolean
 }
 
@@ -223,7 +235,14 @@ export function useReactiveQuery(
       ? readonly(defaultValue)
       : defaultValue
   const queryOptions = computed(() => {
-    const { clone, default: _default, server, enabled, ...rest } = settings.value
+    const {
+      clone,
+      default: _default,
+      server,
+      enabled,
+      rejectOnError: _rejectOnError,
+      ...rest
+    } = settings.value
     if (clone && rest.select) {
       throw new TypeError("clone: true cannot be combined with select.")
     }
@@ -240,6 +259,8 @@ export function useReactiveQuery(
           ? {}
           : { enabled: isEnabled }),
       shallow: false,
+      // Only the returned thenable rejects; TanStack must not also throw from its watcher.
+      throwOnError: false,
     }
     if (!shouldRetryError) return observerOptions
 
@@ -304,12 +325,11 @@ export function useReactiveQuery(
   // Disabled, client-only and offline-paused queries must not block setup or SSR.
   const loaded = query.fetchStatus.value === "fetching" ? query.suspense() : Promise.resolve()
   if (instance) onServerPrefetch(() => loaded)
-  // Resolve to plain state rather than the promise itself to avoid thenable resolution cycles.
-  const awaitable = Object.assign(
-    loaded.then(() => result),
-    result,
-  )
-  // A query also works without await; errors remain observable through its state.
-  void awaitable.catch(() => {})
-  return awaitable
+  const completion = loaded.then((initial) => {
+    if (settings.value.rejectOnError !== false && initial?.isError) throw initial.error
+    return result
+  })
+  // A query also works without await, so its dormant completion must not become unhandled.
+  void completion.catch(() => {})
+  return Object.assign(completion, result)
 }

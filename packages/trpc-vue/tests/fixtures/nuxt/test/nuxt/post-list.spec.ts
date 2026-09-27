@@ -1,6 +1,7 @@
 import { mountSuspended } from "@nuxt/test-utils/runtime"
 import { expect, test, vi } from "vitest"
 
+import AwaitedError from "~/components/awaited-error.vue"
 import PostList from "~/components/post-list.vue"
 
 import { client, procedures } from "./setup"
@@ -23,6 +24,16 @@ test("queries, mutates and invalidates through the test client", async () => {
 
   expect(update).toHaveBeenCalledWith({ id: 1, title: "Updated post" })
   expect(list).toHaveBeenCalledTimes(2)
+})
+
+test("delivers an awaited query error to compiled script setup with its instance restored", async () => {
+  procedures.blog.posts.fail.handle(() => {
+    throw new Error("Failed query")
+  })
+  const component = await mountSuspended(AwaitedError)
+
+  expect(component.get("#awaited-error").text()).toBe("Failed query")
+  expect(component.get("#instance-restored").text()).toBe("true")
 })
 
 /** Never called: the built testing entry must preserve procedure and decorated client types. */

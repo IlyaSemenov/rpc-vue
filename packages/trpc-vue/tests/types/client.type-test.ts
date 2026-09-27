@@ -22,6 +22,9 @@ type Post = {
   readonly details: { readonly label: string }
 }
 expectTypeOf(query.data.value).toEqualTypeOf<Post | undefined>()
+trpc.blog.get.useQuery(input, { rejectOnError: false })
+// @ts-expect-error Await rejection is controlled by rejectOnError, not TanStack's watcher.
+trpc.blog.get.useQuery(input, { throwOnError: true })
 const optionalOptions: { default?: () => "optional" } = {}
 const optionalDefault = trpc.blog.get.useQuery(input, optionalOptions)
 expectTypeOf(optionalDefault.data.value).toEqualTypeOf<Post | "optional" | undefined>()

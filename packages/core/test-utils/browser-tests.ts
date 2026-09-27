@@ -60,6 +60,25 @@ export function defineBrowserTests(endpoint: string, parseProcedures: (path: str
     expect(html).not.toContain("private-cookie")
   })
 
+  test("turns an awaited initial query error into an SSR and navigation error", async ({
+    page,
+    request,
+  }) => {
+    const response = await request.get("/awaited-error")
+    expect(response.status()).toBe(500)
+    expect(await response.text()).toContain('<p id="error-status">500</p>')
+
+    await page.goto("/")
+    await expect(page.locator("#hydrated")).toHaveText("true")
+    await page.locator("#awaited-error").click()
+    await expect(page).toHaveURL(/\/awaited-error$/)
+    await expect
+      .poll(() =>
+        page.evaluate(() => (window as Window & { rpcSetupError?: string }).rpcSetupError),
+      )
+      .toBeTruthy()
+  })
+
   test("invalidates the app cache from an event before any query or mutation is created", async ({
     page,
   }) => {

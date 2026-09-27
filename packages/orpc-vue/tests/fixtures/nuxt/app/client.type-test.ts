@@ -71,6 +71,9 @@ export async function checkNestedClientTypes() {
   const options = ref({ enabled: true })
   const query = orpc.blog.posts.get.useQuery(input, options)
   query.data.value?.id satisfies number | undefined
+  orpc.blog.posts.get.useQuery(input, { rejectOnError: false })
+  // @ts-expect-error Built declarations replace TanStack throwOnError with rejectOnError.
+  orpc.blog.posts.get.useQuery(input, { throwOnError: true })
   query.data.value = {
     id: 2,
     details: { title: "saved" },

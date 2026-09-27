@@ -133,7 +133,7 @@ const query = trpc.blog.posts.get.useQuery(() =>
 
 You can use `useQuery` with or without `await`.
 Without it, you get the query refs immediately and can show a loading state.
-With it, you wait for the initial fetch.
+With it, you wait for the initial fetch and reject if that fetch fails.
 During SSR, the page waits for active queries either way.
 
 Set `server: false` in the query options to fetch only after the component mounts in the browser.
@@ -143,8 +143,12 @@ The query refs are still available during SSR.
 This includes disabled queries, `skipToken`, queries waiting for the component to mount, and requests paused because the browser is offline.
 It does not wait for these queries to become enabled or resume fetching.
 
-Failed queries expose the error in `query.error.value`.
-Set `throwOnError: true` if you also want `await` to throw and Vue to handle the error through its error hooks or boundaries.
+During SSR, an awaited initial error reaches Nuxt's error page.
+During client-side navigation, it reaches Vue and Nuxt error handling, where an error boundary or hook can choose how to present it.
+Set `rejectOnError: false` to resolve the await and inspect the error through `query.error.value` instead.
+Queries used without `await` also expose failures through `query.error.value`.
+Errors from later refetches update that ref without changing the already settled initial await.
+TanStack's `throwOnError` option is not supported; use `rejectOnError`.
 
 ## Mutations
 
@@ -633,6 +637,16 @@ test("renders the posts", async () => {
   expect(component.text()).toContain("First post")
   expect(list).toHaveBeenCalledOnce()
 })
+```
+
+When an awaited query fails during setup, `mountSuspended()` rejects with that error unless the component sets `rejectOnError: false` or catches it itself:
+
+```ts
+procedures.blog.posts.list.handle(() => {
+  throw new Error("Failed query")
+})
+
+await expect(mountSuspended(PostList)).rejects.toThrow("Failed query")
 ```
 
 Handlers replace your server procedures, so middleware, transformers and your `errorFormatter` do not run, and subscriptions are not mocked.

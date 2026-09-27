@@ -81,6 +81,9 @@ export async function checkNestedClientTypes() {
   const query = trpc.blog.posts.get.useQuery(input, options)
   query.data.value?.id satisfies number | undefined
   query.error.value satisfies TRPCClientError<AppRouter> | null
+  trpc.blog.posts.get.useQuery(input, { rejectOnError: false })
+  // @ts-expect-error Built declarations replace TanStack throwOnError with rejectOnError.
+  trpc.blog.posts.get.useQuery(input, { throwOnError: true })
   query.data.value = {
     id: 2,
     details: { title: "saved" },

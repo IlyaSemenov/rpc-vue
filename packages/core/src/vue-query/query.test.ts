@@ -130,7 +130,13 @@ describe("query composable", () => {
     expect(defaults).toBe(1)
 
     const failed = scope.run(() =>
-      useItem({ id: -1 }, { default: () => ({ id: 0, details: { title: "Unavailable" } }) }),
+      useItem(
+        { id: -1 },
+        {
+          default: () => ({ id: 0, details: { title: "Unavailable" } }),
+          rejectOnError: false,
+        },
+      ),
     )!
     await failed
     expect(failed.data.value?.details.title).toBe("Unavailable")
@@ -282,11 +288,65 @@ describe("query composable", () => {
     expect(query.data.value?.id).toBe(2)
   })
 
-  test("errors are state by default", async () => {
+  test("await rejects the initial error without throwing it from TanStack's watcher", async () => {
     const { scope, useItem } = setup()
     const query = scope.run(() => useItem({ id: -1 }))!
-    await query
+    await expect(Promise.resolve(query)).rejects.toThrow("Missing item")
     expect(query.error.value?.message).toBe("Missing item")
+  })
+
+  test("rejectOnError false resolves with the initial error state", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, throwOnError: true } },
+    })
+    const { scope, useItem } = setup(queryClient)
+    const query = scope.run(() => useItem({ id: -1 }, { rejectOnError: false }))!
+
+    expect((await query).data).toBe(query.data)
+    expect(query.error.value?.message).toBe("Missing item")
+  })
+
+  test("supports then, catch and finally", async () => {
+    const { scope, useItem } = setup()
+
+    const thened = scope.run(() => useItem({ id: 1 }))!
+    expect(await thened.then((result) => result.data.value?.id)).toBe(1)
+
+    const caught = scope.run(() => useItem({ id: -1 }))!
+    const caughtPromise = caught.catch((error: Error) => error.message)
+    expect(await caughtPromise).toBe("Missing item")
+
+    let didFinalize = false
+    const finalizing = scope.run(() => useItem({ id: -2 }))!
+    const finalizedPromise = finalizing.finally(() => {
+      didFinalize = true
+    })
+    await expect(finalizedPromise).rejects.toThrow("Missing item")
+    expect(didFinalize).toBe(true)
+  })
+
+  test("an inactive query resolves despite a cached error", async () => {
+    const { scope, useItem } = setup()
+    await expect(Promise.resolve(scope.run(() => useItem({ id: -1 }))!)).rejects.toThrow(
+      "Missing item",
+    )
+
+    const inactive = scope.run(() => useItem({ id: -1 }, { enabled: false }))!
+    expect((await inactive).error.value?.message).toBe("Missing item")
+  })
+
+  test("a later refetch error does not change the settled initial await", async () => {
+    const { scope, useItem } = setup()
+    const input = reactive({ id: 1 })
+    const query = scope.run(() => useItem(input))!
+    const initial = query.then((result) => result)
+    expect((await initial).data).toBe(query.data)
+
+    input.id = -1
+    await nextTick()
+    await query.suspense()
+    expect(query.error.value?.message).toBe("Missing item")
+    expect((await initial).data).toBe(query.data)
   })
 
   test("an error retry guard preserves the configured retry policy for allowed errors", async () => {
@@ -295,7 +355,9 @@ describe("query composable", () => {
       "item",
       () => false,
     )
-    await blocked.scope.run(() => blocked.useItem({ id: -1 }))!
+    await expect(
+      Promise.resolve(blocked.scope.run(() => blocked.useItem({ id: -1 }))!),
+    ).rejects.toThrow("Missing item")
     expect(blocked.calls()).toBe(1)
 
     const allowed = setup(
@@ -303,7 +365,9 @@ describe("query composable", () => {
       "item",
       () => true,
     )
-    await allowed.scope.run(() => allowed.useItem({ id: -1 }))!
+    await expect(
+      Promise.resolve(allowed.scope.run(() => allowed.useItem({ id: -1 }))!),
+    ).rejects.toThrow("Missing item")
     expect(allowed.calls()).toBe(3)
   })
 
@@ -313,7 +377,9 @@ describe("query composable", () => {
       "item",
       () => true,
     )
-    await server.scope.run(() => server.useItem({ id: -1 }))!
+    await expect(
+      Promise.resolve(server.scope.run(() => server.useItem({ id: -1 }))!),
+    ).rejects.toThrow("Missing item")
     expect(server.calls()).toBe(1)
   })
 
@@ -326,28 +392,28 @@ describe("query composable", () => {
         "item",
         () => true,
       )
-      await browser.scope.run(() => browser.useItem({ id: -1 }))!
+      await expect(
+        Promise.resolve(browser.scope.run(() => browser.useItem({ id: -1 }))!),
+      ).rejects.toThrow("Missing item")
       expect(browser.calls()).toBe(4)
     } finally {
       environmentManager.setIsServer(() => wasServer)
     }
   })
 
-  test("throwOnError rejects awaiting and reaches the Vue error handler", async () => {
+  test("an awaited error rejects server-rendered component setup", async () => {
     const { useItem } = setup()
     const errors: unknown[] = []
     const app = createSSRApp({
       async setup() {
-        const query = useItem({ id: -1 }, { throwOnError: true })
-        await expect(query).rejects.toThrow("Missing item")
-        return () => h("p", "handled")
+        await useItem({ id: -1 })
       },
+      render: () => h("p", "unreachable"),
     })
-    app.config.errorHandler = (error) => {
-      errors.push(error)
-    }
-    expect(await renderToString(app)).toContain("handled")
-    expect(errors.length).toBeGreaterThan(0)
+    app.config.errorHandler = (error) => errors.push(error)
+    await renderToString(app)
+    expect(errors).toHaveLength(1)
+    expect(errors[0]).toHaveProperty("message", "Missing item")
   })
 })
 
