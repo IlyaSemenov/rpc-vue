@@ -12,15 +12,19 @@ const clients: QueryClient[] = []
 const scopes: EffectScope[] = []
 
 /** Create an isolated cache and effect scope, both disposed by afterEach. */
-function setup() {
-  const queryClient = new QueryClient({
+function setup(
+  queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false, staleTime: Infinity },
     },
-  })
+  }),
+) {
   const scope = effectScope()
   clients.push(queryClient)
   scopes.push(scope)
+  let failCalls = 0
+  let findCalls = 0
+  let unexpectedCalls = 0
   const router = {
     item: {
       get: os
@@ -47,10 +51,23 @@ function setup() {
     },
     ping: os.handler(() => "pong"),
     fail: os.handler(() => {
+      failCalls++
       throw new ORPCError("NOT_FOUND", { message: "Missing" })
     }),
+    find: os
+      .errors({ CONFLICT: {}, NOT_FOUND: {} })
+      .input(z.object({ id: z.number() }))
+      .handler(({ input, errors }) => {
+        findCalls++
+        if (input.id < 0) throw errors.NOT_FOUND()
+        return { id: input.id }
+      }),
     missing: os.errors({ NOT_FOUND: {} }).handler(({ errors }) => {
       throw errors.NOT_FOUND()
+    }),
+    unexpected: os.errors({ NOT_FOUND: {} }).handler(() => {
+      unexpectedCalls++
+      throw new Error("Unexpected")
     }),
     // Exercise collisions with both upstream utility names and the added composable names.
     queryOptions: { nested: os.handler(() => "collision") },
@@ -65,6 +82,9 @@ function setup() {
     scope,
     orpc,
     rawClient,
+    failCalls: () => failCalls,
+    findCalls: () => findCalls,
+    unexpectedCalls: () => unexpectedCalls,
   }
 }
 
@@ -204,23 +224,35 @@ describe("query and mutation client", () => {
 describe("callCatching", () => {
   test("returns the output or the matching declared error result", async () => {
     const { orpc } = setup()
-    expect(await orpc.item.get.callCatching({ id: 1 }, {})).toHaveProperty("id", 1)
+    expect(await orpc.find.callCatching({ id: 1 }, {})).toEqual({ id: 1 })
     expect(await orpc.missing.callCatching(undefined, { NOT_FOUND: null })).toBeNull()
     expect(await orpc.missing.callCatching(undefined, { NOT_FOUND: (error) => error.code })).toBe(
       "NOT_FOUND",
     )
   })
 
-  test("rethrows undeclared errors", async () => {
+  test("rethrows declared errors without a matching handler", async () => {
     const { orpc } = setup()
-    await expect(orpc.fail.callCatching(undefined, {})).rejects.toBeInstanceOf(ORPCError)
+    await expect(orpc.missing.callCatching(undefined, {})).rejects.toBeInstanceOf(ORPCError)
+  })
+
+  test("rethrows undeclared errors from procedures with declared errors", async () => {
+    const { orpc } = setup()
+    await expect(orpc.unexpected.callCatching(undefined, { NOT_FOUND: null })).rejects.toThrow(
+      "Unexpected",
+    )
   })
 
   test("forwards input and call options", async () => {
     const { queryClient } = setup()
     const calls: unknown[] = []
     const raw = createORPCClient<{
-      get: Client<{ token: string }, { id: number }, string, Error>
+      get: Client<
+        { token: string },
+        { id: number },
+        string,
+        ORPCError<"NOT_FOUND", unknown> | Error
+      >
     }>({
       async call(path, input, options) {
         calls.push({ path, input, context: options.context })
@@ -231,5 +263,74 @@ describe("callCatching", () => {
     const result = await orpc.get.callCatching({ id: 1 }, {}, { context: { token: "token" } })
     expect(result).toBe("result")
     expect(calls).toEqual([{ path: ["get"], input: { id: 1 }, context: { token: "token" } }])
+  })
+})
+
+describe("query catching", () => {
+  test("caches a handled declared error as successful data", async () => {
+    const { findCalls, orpc, queryClient, scope } = setup()
+    const query = scope.run(() =>
+      orpc.find.useQuery(
+        { id: -1 },
+        {
+          catching: {
+            CONFLICT: "conflict",
+            NOT_FOUND: async () => null,
+          },
+        },
+      ),
+    )!
+
+    await query
+    expect(query.data.value).toBeNull()
+    expect(query.error.value).toBeNull()
+    expect(query.status.value).toBe("success")
+    const upstreamKey = orpc.find.queryKey({ input: { id: -1 } })
+    expect(queryClient.getQueryData(upstreamKey)).toBeUndefined()
+    const caughtKey = queryClient.getQueryCache().getAll()[0]?.queryKey
+    expect(caughtKey).not.toEqual(upstreamKey)
+    expect(caughtKey?.at(-1)).toMatchObject({ catching: ["CONFLICT", "NOT_FOUND"] })
+    expect(findCalls()).toBe(1)
+
+    const cached = scope.run(() =>
+      orpc.find.useQuery({ id: -1 }, { catching: { NOT_FOUND: null, CONFLICT: "conflict" } }),
+    )!
+    await cached
+    expect(cached.data.value).toBeNull()
+    expect(findCalls()).toBe(1)
+
+    queryClient.setQueryData(upstreamKey, { id: -1 })
+    expect(query.data.value).toBeNull()
+    expect(queryClient.getQueryCache().findAll({ queryKey: orpc.find.key() })).toHaveLength(2)
+
+    await orpc.find.invalidate()
+    expect(findCalls()).toBe(2)
+    expect(queryClient.getQueryState(upstreamKey)?.isInvalidated).toBe(true)
+  })
+
+  test("does not retry declared errors and preserves retry for other errors", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: 2, retryDelay: 0 } },
+    })
+    const { failCalls, findCalls, orpc, scope, unexpectedCalls } = setup(queryClient)
+
+    const declared = scope.run(() => orpc.find.useQuery({ id: -1 }))!
+    await declared
+    expect(declared.error.value).toHaveProperty("code", "NOT_FOUND")
+    expect(findCalls()).toBe(1)
+
+    const undeclaredProcedure = scope.run(() => orpc.fail.useQuery())!
+    await undeclaredProcedure
+    expect(undeclaredProcedure.error.value).toBeInstanceOf(ORPCError)
+    expect(failCalls()).toBe(3)
+
+    const undeclaredError = scope.run(() =>
+      orpc.unexpected.useQuery(undefined, { catching: { NOT_FOUND: null } }),
+    )!
+    await undeclaredError
+    expect(undeclaredError.data.value).toBeUndefined()
+    expect(undeclaredError.error.value).toHaveProperty("message", "Unexpected")
+    expect(undeclaredError.status.value).toBe("error")
+    expect(unexpectedCalls()).toBe(3)
   })
 })

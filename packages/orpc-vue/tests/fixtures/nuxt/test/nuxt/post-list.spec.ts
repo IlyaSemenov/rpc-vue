@@ -1,6 +1,7 @@
 import { mountSuspended } from "@nuxt/test-utils/runtime"
 import { expect, test, vi } from "vitest"
 
+import DeclaredError from "~/components/declared-error.vue"
 import PostList from "~/components/post-list.vue"
 
 import { client, procedures } from "./setup"
@@ -23,6 +24,17 @@ test("queries, mutates and invalidates through the test client", async () => {
 
   expect(update).toHaveBeenCalledWith({ id: 1, title: "Updated post" })
   expect(list).toHaveBeenCalledTimes(2)
+})
+
+test("renders a caught declared error as data", async () => {
+  procedures.blog.posts.update.handle((_input, { errors }) => {
+    throw errors.NOT_FOUND()
+  })
+  const component = await mountSuspended(DeclaredError)
+
+  expect(component.get("#declared-data").text()).toBe("missing")
+  expect(component.get("#declared-status").text()).toBe("success")
+  expect(component.get("#declared-error").text()).toBe("")
 })
 
 /** Never called: the built testing entry must preserve procedure and decorated client types. */

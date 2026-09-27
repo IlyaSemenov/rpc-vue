@@ -37,7 +37,10 @@ export function createTRPCVueQuery<TRouter extends AnyTRPCRouter>(
     return {
       ...utils,
       useQuery: (input: unknown, settings: unknown) =>
-        useReactiveQuery(utils.queryOptions, input, settings, getQueryClient()),
+        useReactiveQuery(input, settings, {
+          buildOptions: utils.queryOptions,
+          queryClient: getQueryClient(),
+        }),
       useMutation: (settings: unknown) =>
         useReactiveMutation(utils.mutationOptions, settings, getQueryClient()),
       invalidate: () => getQueryClient().invalidateQueries({ queryKey: utils.pathKey() }),

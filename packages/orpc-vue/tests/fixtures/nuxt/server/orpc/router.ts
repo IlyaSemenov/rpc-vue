@@ -30,7 +30,8 @@ const posts = {
         title: z.string(),
       }),
     )
-    .handler(({ input }) => {
+    .handler(({ input, errors }) => {
+      if (input.id < 0) throw errors.NOT_FOUND()
       return {
         id: input.id,
         details: { title: input.title },

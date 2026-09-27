@@ -7,7 +7,7 @@ import type { QueryKey } from "@tanstack/vue-query"
 
 import type { ORPCVueQueryClient, ORPCVueQueryOptions } from "../types"
 import { decorateClient } from "./decorate"
-import { catchDefinedErrors } from "./error"
+import { catchDefinedErrors, isDefinedORPCError } from "./error"
 import { hashORPCKey } from "./hash"
 import { createProcedureOptions } from "./utils"
 
@@ -41,7 +41,11 @@ export function createORPCVueQuery<TClient extends AnyNestedClient>(
     const { queryOptions, mutationOptions } = createProcedureOptions(target)
     return {
       useQuery: (input: unknown, settings: unknown) =>
-        useReactiveQuery(queryOptions, input, settings, getQueryClient()),
+        useReactiveQuery(input, settings, {
+          buildOptions: queryOptions,
+          queryClient: getQueryClient(),
+          shouldRetryError: (error) => !isDefinedORPCError(error),
+        }),
       useMutation: (settings: unknown) =>
         useReactiveMutation(mutationOptions, settings, getQueryClient()),
       callCatching: (input: unknown, handlers: Record<string, unknown>, callOptions: unknown) =>

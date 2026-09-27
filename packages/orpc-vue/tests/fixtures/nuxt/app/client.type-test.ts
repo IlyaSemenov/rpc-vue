@@ -150,6 +150,73 @@ export async function checkNestedClientTypes() {
   caught satisfies { id: number; details: { title: string } } | null
   // @ts-expect-error callCatching retains declared error codes after declaration emission.
   injected.blog.posts.update.callCatching({ id: 1, title: "updated" }, { FORBIDDEN: null })
+  const caughtQuery = injected.blog.posts.update.useQuery(
+    { id: 1, title: "updated" },
+    { catching: { NOT_FOUND: null } },
+  )
+  caughtQuery.data.value satisfies
+    | { readonly id: number; readonly details: { readonly title: string } }
+    | null
+    | undefined
+  const syncCaughtQuery = injected.blog.posts.update.useQuery(
+    { id: 1, title: "updated" },
+    { catching: { NOT_FOUND: () => ({ missing: true as const }) } },
+  )
+  syncCaughtQuery.data.value satisfies
+    | { readonly id: number; readonly details: { readonly title: string } }
+    | { readonly missing: true }
+    | undefined
+  const asyncCaughtQuery = injected.blog.posts.update.useQuery(
+    { id: 1, title: "updated" },
+    { catching: { NOT_FOUND: async () => null } },
+  )
+  asyncCaughtQuery.data.value satisfies
+    | { readonly id: number; readonly details: { readonly title: string } }
+    | null
+    | undefined
+  injected.blog.posts.update.useQuery(
+    { id: 1, title: "updated" },
+    // @ts-expect-error Query catching values cannot be undefined after declaration emission.
+    { catching: { NOT_FOUND: undefined } },
+  )
+  injected.blog.posts.update.useQuery(
+    { id: 1, title: "updated" },
+    // @ts-expect-error Query catching handlers cannot return undefined after declaration emission.
+    { catching: { NOT_FOUND: () => {} } },
+  )
+  injected.blog.posts.update.useQuery(
+    { id: 1, title: "updated" },
+    // @ts-expect-error Async query catching handlers cannot return undefined after declaration emission.
+    { catching: { NOT_FOUND: async () => undefined } },
+  )
+  injected.blog.posts.update.useQuery(
+    { id: 1, title: "updated" },
+    // @ts-expect-error Async query catching handlers cannot return void after declaration emission.
+    { catching: { NOT_FOUND: async () => {} } },
+  )
+  injected.blog.posts.update.useQuery(
+    { id: 1, title: "updated" },
+    {
+      catching: {
+        // @ts-expect-error Query catching handlers cannot possibly resolve to undefined after declaration emission.
+        NOT_FOUND: (): Promise<{ missing: true } | undefined> => Promise.resolve(undefined),
+      },
+    },
+  )
+  injected.blog.posts.update.useQuery(
+    { id: 1, title: "updated" },
+    // @ts-expect-error Query catching handlers cannot return a promise of undefined after declaration emission.
+    { catching: { NOT_FOUND: () => Promise.resolve(undefined) } },
+  )
+  injected.blog.posts.update.useQuery(
+    { id: 1, title: "updated" },
+    // @ts-expect-error Query catching retains declared error codes after declaration emission.
+    { catching: { FORBIDDEN: null } },
+  )
+  // @ts-expect-error Procedures without declared errors do not expose callCatching.
+  injected.blog.posts.ping.callCatching(undefined, {})
+  // @ts-expect-error Procedures without declared errors do not accept query catching.
+  injected.blog.posts.ping.useQuery(undefined, { catching: {} })
 
   const deep = await orpc.blog.admin.comments.get.useQuery({ id: 1 })
   deep.data.value?.details.title satisfies string | undefined

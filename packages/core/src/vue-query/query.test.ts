@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test"
 
 import {
   dehydrate,
+  environmentManager,
   hydrate,
   QueryClient,
   type QueryObserverOptions,
@@ -44,6 +45,7 @@ function setup(
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   }),
   source = "item",
+  shouldRetryError?: (error: unknown) => boolean,
 ) {
   const scope = effectScope()
   clients.push(queryClient)
@@ -76,9 +78,11 @@ function setup(
     calls: () => calls,
     key: (id: number) => ["item", { id }],
     useItem(input: unknown, options?: unknown) {
-      return useReactiveQuery(buildOptions, input, options, queryClient) as AwaitableQuery<
-        QueryResult<Item, Error, true>
-      >
+      return useReactiveQuery(input, options, {
+        buildOptions,
+        queryClient,
+        shouldRetryError,
+      }) as AwaitableQuery<QueryResult<Item, Error, true>>
     },
   }
 }
@@ -283,6 +287,50 @@ describe("query composable", () => {
     const query = scope.run(() => useItem({ id: -1 }))!
     await query
     expect(query.error.value?.message).toBe("Missing item")
+  })
+
+  test("an error retry guard preserves the configured retry policy for allowed errors", async () => {
+    const blocked = setup(
+      new QueryClient({ defaultOptions: { queries: { retry: 2, retryDelay: 0 } } }),
+      "item",
+      () => false,
+    )
+    await blocked.scope.run(() => blocked.useItem({ id: -1 }))!
+    expect(blocked.calls()).toBe(1)
+
+    const allowed = setup(
+      new QueryClient({ defaultOptions: { queries: { retry: 2, retryDelay: 0 } } }),
+      "item",
+      () => true,
+    )
+    await allowed.scope.run(() => allowed.useItem({ id: -1 }))!
+    expect(allowed.calls()).toBe(3)
+  })
+
+  test("uses the server retry default when the guard allows an error", async () => {
+    const server = setup(
+      new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } }),
+      "item",
+      () => true,
+    )
+    await server.scope.run(() => server.useItem({ id: -1 }))!
+    expect(server.calls()).toBe(1)
+  })
+
+  test("uses the browser retry default when the guard allows an error", async () => {
+    const wasServer = environmentManager.isServer()
+    environmentManager.setIsServer(() => false)
+    try {
+      const browser = setup(
+        new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } }),
+        "item",
+        () => true,
+      )
+      await browser.scope.run(() => browser.useItem({ id: -1 }))!
+      expect(browser.calls()).toBe(4)
+    } finally {
+      environmentManager.setIsServer(() => wasServer)
+    }
   })
 
   test("throwOnError rejects awaiting and reaches the Vue error handler", async () => {

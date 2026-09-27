@@ -225,6 +225,20 @@ const post = await orpc.blog.posts.get.callCatching({ id }, { NOT_FOUND: null })
 
 Pass call options such as `context` or `signal` as the third argument.
 Pass `undefined` as input for procedures without input.
+Procedures without declared errors expose neither `.callCatching()` nor the `catching` query option.
+
+The `catching` query option accepts the same handlers as `.callCatching()` and turns matching declared errors into query data:
+
+```ts
+const { data: post } = await orpc.blog.posts.get.useQuery({ id }, { catching: { NOT_FOUND: null } })
+// post.value is the procedure output or null.
+```
+
+Query handlers must return a value; return `null` rather than `undefined` when there is no result.
+A handled result is cached as successful data.
+Queries with the same `catching` codes share a cache entry and must map them to the same results.
+`setQueryData()` with the original `.queryKey()` does not update queries that use `catching`.
+Declared errors are never retried, including codes omitted from `catching`; other errors follow the `retry` option.
 
 `.callCatching()` is built on `catchORPCError()`, which handles errors of a promise returned directly by any typed oRPC client call.
 Use `catchORPCError()` when calling a plain typed oRPC client:

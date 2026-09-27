@@ -33,6 +33,38 @@ export type DefinedErrorHandlers<TError> = Partial<{
     | ErrorResultValue
 }>
 
+/** Handlers for query `catching`; TanStack rejects `undefined` query data. */
+export type QueryDefinedErrorHandlers<TError> = Partial<{
+  [Code in DefinedErrorCode<TError>]:
+    | ((error: Extract<DefinedError<TError>, { code: Code }>) => unknown)
+    | Exclude<ErrorResultValue, undefined>
+}>
+
+type UndeclaredCodes<TError, Handlers> = Record<
+  Exclude<keyof Handlers, DefinedErrorCode<TError>>,
+  never
+>
+
+/** Reject handler keys that are not declared by the procedure. */
+export type StrictDefinedErrorHandlers<
+  TError,
+  Handlers extends DefinedErrorHandlers<TError>,
+> = DefinedErrorHandlers<TError> & Handlers & UndeclaredCodes<TError, Handlers>
+
+/** Reject undeclared codes and query handlers that can resolve to undefined. */
+export type StrictQueryDefinedErrorHandlers<
+  TError,
+  Handlers extends QueryDefinedErrorHandlers<TError>,
+> = QueryDefinedErrorHandlers<TError> &
+  Handlers &
+  UndeclaredCodes<TError, Handlers> & {
+    [Code in keyof Handlers]: Handlers[Code] extends (...args: never[]) => infer Result
+      ? undefined extends Awaited<Result>
+        ? never
+        : Handlers[Code]
+      : Exclude<Handlers[Code], undefined>
+  }
+
 /** The awaited result of any handler or value in `Handlers`. */
 export type HandledResult<Handlers> = {
   [Code in keyof Handlers]: Handlers[Code] extends (...args: never[]) => infer Result
@@ -40,15 +72,21 @@ export type HandledResult<Handlers> = {
     : Awaited<Handlers[Code]>
 }[keyof Handlers]
 
+/** Check whether a runtime rejection is an error declared by its oRPC procedure. */
+export function isDefinedORPCError(error: unknown): error is AnyORPCError {
+  // The upstream generic predicate narrows unknown to never, so provide the runtime union it checks.
+  return isDefinedError(error as AnyORPCError | Error)
+}
+
 /** The `callCatching()` method of a finite procedure in a decorated client. */
 export interface CallCatching<TClientContext extends ClientContext, TInput, TOutput, TError> {
   /**
    * Call the procedure and handle selected declared errors like `catchORPCError()`.
    * Pass `undefined` as input for procedures without input.
    */
-  callCatching<Handlers extends object & DefinedErrorHandlers<TError>>(
+  callCatching<Handlers extends DefinedErrorHandlers<TError>>(
     input: TInput,
-    handlers: Handlers & Record<Exclude<keyof Handlers, DefinedErrorCode<TError>>, never>,
+    handlers: StrictDefinedErrorHandlers<TError, Handlers>,
     ...rest: object extends TClientContext
       ? [options?: FriendlyClientOptions<TClientContext>]
       : [options: FriendlyClientOptions<TClientContext>]
@@ -68,12 +106,11 @@ export interface CallCatching<TClientContext extends ClientContext, TInput, TOut
  */
 export function catchORPCError<
   TPromise extends Promise<unknown>,
-  Handlers extends object & DefinedErrorHandlers<ErrorOf<NoInfer<TPromise>>>,
+  Handlers extends DefinedErrorHandlers<ErrorOf<NoInfer<TPromise>>>,
 >(
   promise: TPromise,
   handlers: "__error" extends keyof TPromise
-    ? Handlers &
-        Record<Exclude<keyof Handlers, DefinedErrorCode<ErrorOf<NoInfer<TPromise>>>>, never>
+    ? StrictDefinedErrorHandlers<ErrorOf<NoInfer<TPromise>>, Handlers>
     : never,
 ): Promise<Awaited<TPromise> | HandledResult<Handlers>>
 
@@ -96,13 +133,11 @@ export function catchDefinedErrors(
   handlers: Record<string, unknown>,
 ): Promise<unknown> {
   return promise.catch((error: unknown) => {
-    // The upstream generic predicate narrows unknown to never, so provide the runtime union it checks.
-    const orpcError = error as AnyORPCError | Error
-    if (!isDefinedError(orpcError)) throw error
+    if (!isDefinedORPCError(error)) throw error
 
-    if (!Object.hasOwn(handlers, orpcError.code)) throw error
+    if (!Object.hasOwn(handlers, error.code)) throw error
 
-    const handler = handlers[orpcError.code]
-    return typeof handler === "function" ? handler(orpcError) : handler
+    const handler = handlers[error.code]
+    return typeof handler === "function" ? handler(error) : handler
   })
 }

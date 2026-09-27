@@ -119,7 +119,87 @@ async function callCatchingInference() {
   orpc.update.callCatching({ id: "1" }, {})
   // @ts-expect-error Input must be passed explicitly before handlers.
   orpc.update.callCatching({ NOT_FOUND: null })
-  ;(await orpc.ping.callCatching(undefined, {})) satisfies string
+  // @ts-expect-error Procedures without declared errors do not expose callCatching.
+  orpc.ping.callCatching(undefined, {})
+
+  const query = orpc.update.useQuery(
+    { id: 1 },
+    {
+      catching: {
+        CONFLICT: (error) => {
+          error.data.field satisfies string
+          return 409 as const
+        },
+        NOT_FOUND: null,
+      },
+    },
+  )
+  expectTypeOf(query.data.value).toEqualTypeOf<
+    { readonly id: number; readonly title: string } | 409 | null | undefined
+  >()
+  query.data.value = null
+  const selected = orpc.update.useQuery(
+    { id: 1 },
+    {
+      catching: { NOT_FOUND: null },
+      select: (data) => (data === null ? "missing" : data.title),
+    },
+  )
+  expectTypeOf(selected.data.value).toEqualTypeOf<string | undefined>()
+  const defaulted = orpc.update.useQuery(
+    { id: 1 },
+    { catching: { NOT_FOUND: null }, default: () => "loading" as const },
+  )
+  expectTypeOf(defaulted.data.value).toEqualTypeOf<
+    { readonly id: number; readonly title: string } | null | "loading"
+  >()
+  // @ts-expect-error A display default cannot be assigned into the response cache.
+  defaulted.data.value = "loading"
+  const asyncCaught = orpc.update.useQuery(
+    { id: 1 },
+    { catching: { NOT_FOUND: async () => ({ missing: true as const }) } },
+  )
+  expectTypeOf(asyncCaught.data.value).toEqualTypeOf<
+    { readonly id: number; readonly title: string } | { readonly missing: true } | undefined
+  >()
+  orpc.update.useQuery(
+    { id: 1 },
+    // @ts-expect-error Query catching values cannot be undefined.
+    { catching: { NOT_FOUND: undefined } },
+  )
+  orpc.update.useQuery(
+    { id: 1 },
+    // @ts-expect-error Query catching handlers cannot return undefined.
+    { catching: { NOT_FOUND: () => {} } },
+  )
+  orpc.update.useQuery(
+    { id: 1 },
+    // @ts-expect-error Async query catching handlers cannot return undefined.
+    { catching: { NOT_FOUND: async () => undefined } },
+  )
+  orpc.update.useQuery(
+    { id: 1 },
+    // @ts-expect-error Async query catching handlers cannot return void.
+    { catching: { NOT_FOUND: async () => {} } },
+  )
+  orpc.update.useQuery(
+    { id: 1 },
+    {
+      catching: {
+        // @ts-expect-error Query catching handlers cannot possibly resolve to undefined.
+        NOT_FOUND: (): Promise<{ missing: true } | undefined> => Promise.resolve(undefined),
+      },
+    },
+  )
+  orpc.update.useQuery(
+    { id: 1 },
+    // @ts-expect-error Query catching handlers cannot return a promise of undefined.
+    { catching: { NOT_FOUND: () => Promise.resolve(undefined) } },
+  )
+  // @ts-expect-error Handler codes are limited to declared errors.
+  orpc.update.useQuery({ id: 1 }, { catching: { FORBIDDEN: null } })
+  // @ts-expect-error Procedures without declared errors do not accept catching.
+  orpc.ping.useQuery(undefined, { catching: {} })
 }
 
 // Reuse the same leaves at different depths so recursion cannot silently stop after one level.
@@ -152,13 +232,13 @@ async function inference() {
     enabled: ref(true),
     staleTime: ref(1_000),
   })
+  type Post = { readonly id: number; readonly author: { readonly name: string } }
+  expectTypeOf(query.data.value).toEqualTypeOf<Post | undefined>()
   query.data.value = {
     id: 2,
     author: { name: "new" },
   }
   const id: number | undefined = query.data.value?.id
-  type Post = NonNullable<typeof query.data.value>
-  expectTypeOf(query.data.value).toEqualTypeOf<Post | undefined>()
   const optionalOptions: { default?: () => "optional" } = {}
   const optionalDefault = orpc.get.useQuery({ id: 1 }, optionalOptions)
   expectTypeOf(optionalDefault.data.value).toEqualTypeOf<Post | "optional" | undefined>()
@@ -342,7 +422,7 @@ async function nestedInference() {
 
 /** Verify that wrapping flat or nested clients does not make required context optional. */
 function contextInference(raw: {
-  get: Client<{ token: string }, void, number, Error>
+  get: Client<{ token: string }, void, number, ORPCError<"UNAUTHORIZED", unknown> | Error>
   blog: {
     posts: {
       get: Client<{ token: string }, { id: number }, { title: string }, Error>

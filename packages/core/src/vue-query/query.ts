@@ -2,6 +2,7 @@ import {
   type QueryClient,
   type QueryObserverOptions,
   type SkipToken,
+  environmentManager,
   skipToken,
   useQuery,
   type UseQueryOptions,
@@ -22,6 +23,7 @@ import {
   ref,
   toRaw,
   toValue,
+  unref,
   watch,
   type WritableComputedRef,
 } from "vue"
@@ -98,7 +100,11 @@ export type QueryDefaultValue<TDefaultFactory extends QueryDefaultFactory> =
   TDefaultFactory extends () => infer TDefault ? TDefault : undefined
 
 /** Omit input only when its type allows it, and options only when the protocol does not need them. */
-type QueryArgs<TInput, TOptions, TOptionsRequired extends boolean> = TOptionsRequired extends true
+export type QueryArgs<
+  TInput,
+  TOptions,
+  TOptionsRequired extends boolean,
+> = TOptionsRequired extends true
   ? [input: QueryInput<TInput>, options: TOptions]
   : undefined extends TInput
     ? [input?: QueryInput<TInput>, options?: TOptions]
@@ -158,26 +164,43 @@ type RuntimeOptions = ReactiveQueryOptions<unknown, Error> & {
   select?: (data: unknown) => unknown
 }
 
+type QueryRetry = QueryObserverOptions<unknown, Error>["retry"]
+
+/** Evaluate a resolved retry option like TanStack's retryer. */
+function canRetry(retry: QueryRetry, failureCount: number, error: Error): boolean {
+  if (retry === true) return true
+  if (typeof retry === "number") return failureCount < retry
+  if (typeof retry === "function") return retry(failureCount, error)
+  return retry === undefined && !environmentManager.isServer() && failureCount < 3
+}
+
+interface ReactiveQueryIntegration {
+  /** Build protocol-specific options from the input snapshot and resolved settings. */
+  buildOptions: (
+    input: unknown,
+    options: Record<string, unknown>,
+  ) => QueryObserverOptions<unknown, Error>
+  /** The cache owner resolved by the client factory. */
+  queryClient: QueryClient
+  /** Return false to never retry this error; otherwise the query's `retry` option, including QueryClient defaults, decides. */
+  shouldRetryError?: (error: unknown) => boolean
+}
+
 /**
  * Observe a procedure with reactive input, SSR prefetching and optional local cloning.
  * Registers lifecycle hooks synchronously and returns query state that can also be awaited.
  * Nested edits affect only the opt-in clone; whole-value assignments write through to the cache.
  * Selected data cannot be assigned back because its shape may differ from the cached response.
  *
- * @param buildOptions - Build protocol-specific options from the input snapshot and resolved settings.
  * @param input - A value, ref or getter; skipToken suppresses automatic fetching.
  * @param options - Query options, optionally wrapped in a ref or getter.
- * @param queryClient - The cache owner resolved by the client factory.
+ * @param integration - Protocol option builder, cache owner and optional retry guard.
  * @returns Live query refs plus a promise waiting for the initial active fetch.
  */
 export function useReactiveQuery(
-  buildOptions: (
-    input: unknown,
-    options: Record<string, unknown>,
-  ) => QueryObserverOptions<unknown, Error>,
   input: unknown,
   options: unknown,
-  queryClient: QueryClient,
+  { buildOptions, queryClient, shouldRetryError }: ReactiveQueryIntegration,
 ): AwaitableQuery<QueryResult<unknown, Error, true>> {
   if (!getCurrentScope()) {
     throw new Error("useQuery() requires a component setup or an active Vue effect scope.")
@@ -208,7 +231,7 @@ export function useReactiveQuery(
     const snapshot = cloneDeep(toValue(input))
     const isEnabled = toValue(enabled)
     const { enabled: _enabled, ...built } = buildOptions(snapshot, rest)
-    return {
+    const observerOptions = {
       ...built,
       // Omit an unspecified enabled value so QueryClient defaults still apply.
       ...(snapshot === skipToken || (server === false && !mounted.value)
@@ -217,6 +240,15 @@ export function useReactiveQuery(
           ? {}
           : { enabled: isEnabled }),
       shallow: false,
+    }
+    if (!shouldRetryError) return observerOptions
+
+    // Our retry function replaces the configured one, so resolve it with QueryClient and per-key defaults first.
+    const retry = unref(queryClient.defaultQueryOptions(observerOptions).retry) as QueryRetry
+    return {
+      ...observerOptions,
+      retry: (failureCount: number, error: Error) =>
+        shouldRetryError(error) && canRetry(retry, failureCount, error),
     }
   })
   const query = useQuery(queryOptions, queryClient)
