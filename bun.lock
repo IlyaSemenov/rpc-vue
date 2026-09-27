@@ -59,7 +59,7 @@
     },
     "packages/orpc-vue": {
       "name": "orpc-vue",
-      "version": "0.10.0",
+      "version": "0.11.0",
       "dependencies": {
         "devalue": "^5.0.0",
         "es-toolkit": "^1.52.0",
@@ -103,7 +103,7 @@
     },
     "packages/trpc-vue": {
       "name": "trpc-vue",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "dependencies": {
         "devalue": "^5.0.0",
         "es-toolkit": "^1.52.0",
