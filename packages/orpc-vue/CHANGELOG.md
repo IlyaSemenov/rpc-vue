@@ -1,5 +1,16 @@
 # orpc-vue
 
+## 0.11.0
+
+### Minor Changes
+
+- 8ce48c1: BREAKING: `await useQuery()` now rejects when the initial fetch fails; set `rejectOnError: false` to resolve with the error state as before.
+  BREAKING: TanStack's `throwOnError` query option is no longer exposed by the composables.
+- f59a39c: Add a `catching` option to `useQuery` that turns declared errors into cached data.
+  BREAKING: Procedures without declared errors no longer expose `callCatching`, and declared query errors no longer retry.
+- 53a326f: Add `onUnexpectedError` to report unexpected browser errors from calls, queries and mutations.
+- a21f57a: Add non-cached query defaults for pending, disabled, skipped, and failed queries.
+
 ## 0.10.0
 
 ### Minor Changes
