@@ -99,6 +99,85 @@ describe("query composable", () => {
     expect(calls()).toBe(1)
   })
 
+  test("exposes a stable default without writing it to the cache", async () => {
+    const { scope, queryClient, useItem, key } = setup()
+    const fallback = { id: 0, details: { title: "Loading" } }
+    let defaults = 0
+    const query = scope.run(() =>
+      useItem(
+        { id: 1 },
+        {
+          default: () => {
+            defaults++
+            return fallback
+          },
+        },
+      ),
+    )!
+
+    expect(query.data.value).toEqual(fallback)
+    expect(isReadonly(query.data.value)).toBe(true)
+    expect(query.isPending.value).toBe(true)
+    expect(queryClient.getQueryData(key(1))).toBeUndefined()
+    expect(defaults).toBe(1)
+
+    await query
+    expect(query.data.value?.details.title).toBe("item 1")
+    expect(defaults).toBe(1)
+
+    const failed = scope.run(() =>
+      useItem({ id: -1 }, { default: () => ({ id: 0, details: { title: "Unavailable" } }) }),
+    )!
+    await failed
+    expect(failed.data.value?.details.title).toBe("Unavailable")
+    expect(failed.error.value?.message).toBe("Missing item")
+    expect(queryClient.getQueryData(key(-1))).toBeUndefined()
+  })
+
+  test("keeps cloned and selected defaults outside the cache", async () => {
+    const { scope, queryClient, useItem } = setup()
+    const fallback = { id: 0, details: { title: "Draft" } }
+    const clone = scope.run(() =>
+      useItem(skipToken, {
+        clone: true,
+        default: () => fallback,
+      }),
+    )!
+    const selected = scope.run(() =>
+      useItem(skipToken, {
+        select: (item: Item) => item.details,
+        default: () => ({ title: "Nothing selected" }),
+      }),
+    )!
+
+    expect(clone.data.value).not.toBe(fallback)
+    expect(isReadonly(clone.data.value)).toBe(false)
+    clone.data.value!.details.title = "Local draft"
+    expect(fallback.details.title).toBe("Draft")
+    expect(selected.data.value).toHaveProperty("title", "Nothing selected")
+    expect(isReadonly(selected.data.value)).toBe(true)
+    expect(queryClient.getQueryData(["item", skipToken])).toBeUndefined()
+  })
+
+  test("writes to the cache only after explicit assignment over a default", async () => {
+    const { scope, queryClient, useItem, key } = setup()
+    const query = scope.run(() =>
+      useItem(
+        { id: 2 },
+        {
+          enabled: false,
+          default: () => ({ id: 0, details: { title: "Disabled" } }),
+        },
+      ),
+    )!
+
+    expect(query.data.value?.details.title).toBe("Disabled")
+    expect(queryClient.getQueryData(key(2))).toBeUndefined()
+    query.data.value = { id: 2, details: { title: "Assigned" } }
+    expect(queryClient.getQueryData(key(2))).toHaveProperty("details.title", "Assigned")
+    expect(query.data.value?.details.title).toBe("Assigned")
+  })
+
   test("clones are local; root assignment updates the shared cache", async () => {
     const { scope, queryClient, useItem, key } = setup()
     const clone = scope.run(() => useItem({ id: 1 }, { clone: true }))!
@@ -137,7 +216,7 @@ describe("query composable", () => {
     const { scope, queryClient, useItem, key } = setup()
     const selected = scope.run(() => useItem({ id: 1 }, { select: (item: Item) => item.details }))!
     await selected
-    expect(selected.data.value as unknown).toEqual({ title: "item 1" })
+    expect(selected.data.value).toHaveProperty("title", "item 1")
     expect(isReadonly(selected.data.value)).toBe(true)
     expect(() => {
       Reflect.set(selected.data, "value", { title: "wrong" })
@@ -253,16 +332,47 @@ describe("server rendering", () => {
     expect(calls).toBe(2)
   })
 
+  test("uses hydrated data instead of the local default", async () => {
+    const server = setup(undefined, "Server")
+    const serverQuery = server.scope.run(() =>
+      server.useItem(
+        { id: 1 },
+        { default: () => ({ id: 0, details: { title: "server default" } }) },
+      ),
+    )!
+    await serverQuery
+    const state = dehydrate(server.queryClient)
+    expect(JSON.stringify(state)).not.toContain("server default")
+
+    const client = setup(undefined, "should not fetch")
+    hydrate(client.queryClient, state)
+    const clientQuery = client.scope.run(() =>
+      client.useItem(
+        { id: 1 },
+        { default: () => ({ id: 0, details: { title: "client default" } }) },
+      ),
+    )!
+    expect(clientQuery.data.value?.details.title).toBe("Server 1")
+    expect(client.calls()).toBe(0)
+  })
+
   test("server: false never starts or awaits an SSR request", async () => {
     const { queryClient, useItem, calls, key } = setup()
     const app = createSSRApp({
       async setup() {
-        const query = await useItem({ id: 1 }, { server: false })
-        return () => h("p", query.data.value?.details.title ?? "pending")
+        const query = await useItem(
+          { id: 1 },
+          {
+            server: false,
+            default: () => ({ id: 0, details: { title: "pending" } }),
+          },
+        )
+        return () => h("p", query.data.value?.details.title)
       },
     })
     expect(await renderToString(app)).toBe("<p>pending</p>")
     expect(queryClient.getQueryState(key(1))?.fetchStatus).toBe("idle")
+    expect(dehydrate(queryClient).queries).toHaveLength(0)
     expect(calls()).toBe(0)
   })
 })

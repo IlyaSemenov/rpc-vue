@@ -1,12 +1,12 @@
 <script setup lang="ts">
 const orpc = useOrpc()
-const { data: posts } = await orpc.blog.posts.list.useQuery()
+const { data: posts } = await orpc.blog.posts.list.useQuery(undefined, { default: () => [] })
 const update = orpc.blog.posts.update.useMutation({
   onSuccess: () => orpc.blog.posts.invalidate(),
 })
 
 async function updateFirstPost() {
-  const post = posts.value?.[0]
+  const post = posts.value[0]
   if (!post) return
   await update.mutateAsync({ id: post.id, title: "Updated post" })
 }

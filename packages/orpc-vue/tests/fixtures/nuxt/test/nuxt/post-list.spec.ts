@@ -27,8 +27,8 @@ test("queries, mutates and invalidates through the test client", async () => {
 
 /** Never called: the built testing entry must preserve procedure and decorated client types. */
 export function checkTestClientTypes() {
-  const query = client.blog.posts.list.useQuery()
-  query.data.value?.[0]?.title satisfies string | undefined
+  const query = client.blog.posts.list.useQuery(undefined, { default: () => [] })
+  query.data.value[0]?.title satisfies string | undefined
   procedures.blog.posts.get.handle(async (input) => {
     input.id satisfies number
     return { id: input.id, details: { title: "Post" } }

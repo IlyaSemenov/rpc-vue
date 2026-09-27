@@ -16,7 +16,37 @@ const context = createTRPCVueContext<typeof router>()
 const trpc = context.useTrpc()
 const input = ref({ id: 1 })
 const query = trpc.blog.get.useQuery(input)
-expectTypeOf(query.data.value?.id).toEqualTypeOf<number | undefined>()
+type Post = {
+  readonly id: number
+  readonly title: string
+  readonly details: { readonly label: string }
+}
+expectTypeOf(query.data.value).toEqualTypeOf<Post | undefined>()
+const optionalOptions: { default?: () => "optional" } = {}
+const optionalDefault = trpc.blog.get.useQuery(input, optionalOptions)
+expectTypeOf(optionalDefault.data.value).toEqualTypeOf<Post | "optional" | undefined>()
+const condition = true as boolean
+const conditionalDefault = trpc.blog.get.useQuery(input, {
+  default: condition ? () => "conditional" as const : undefined,
+})
+expectTypeOf(conditionalDefault.data.value).toEqualTypeOf<Post | "conditional" | undefined>()
+const literalDefault = trpc.blog.get.useQuery(input, { default: () => "literal" as const })
+expectTypeOf(literalDefault.data.value).toEqualTypeOf<Post | "literal">()
+const defaulted = trpc.blog.get.useQuery(input, {
+  default: () => ({ id: 0, title: "Loading", details: { label: "Loading" } }),
+})
+expectTypeOf(defaulted.data.value.id).toEqualTypeOf<number>()
+// @ts-expect-error Defaulted cached values remain deeply readonly.
+defaulted.data.value.details.label = "wrong"
+const nullable = trpc.blog.get.useQuery(input, { default: () => null })
+expectTypeOf(nullable.data.value).toEqualTypeOf<{
+  readonly id: number
+  readonly title: string
+  readonly details: { readonly label: string }
+} | null>()
+// @ts-expect-error A display default cannot be assigned into the response cache.
+nullable.data.value = null
+nullable.data.value = { id: 1, title: "Cached", details: { label: "Cached" } }
 expectTypeOf(query.error.value?.data?.reason).toEqualTypeOf<string | undefined>()
 expectTypeOf(trpc.date.query()).toEqualTypeOf<Promise<string>>()
 // @ts-expect-error Input is required.
@@ -39,12 +69,22 @@ trpc.events.useSubscription()
 trpc.blog.get.infiniteQueryOptions({ id: 1 })
 const selected = trpc.blog.get.useQuery(input, { select: (data) => data.title })
 expectTypeOf(selected.data.value).toEqualTypeOf<string | undefined>()
+const selectedDefault = trpc.blog.get.useQuery(input, {
+  select: (data) => data.title,
+  default: () => "Loading",
+})
+expectTypeOf(selectedDefault.data.value).toEqualTypeOf<string>()
 // @ts-expect-error Selected data is readonly.
 selected.data.value = "bad"
 // @ts-expect-error Clone and select are mutually exclusive.
 trpc.blog.get.useQuery(input, { clone: true, select: (data) => data.title })
 const clone = trpc.blog.get.useQuery(input, { clone: true })
 if (clone.data.value) clone.data.value.details.label = "draft"
+const defaultClone = trpc.blog.get.useQuery(input, {
+  clone: true,
+  default: () => ({ id: 0, title: "Draft", details: { label: "Draft" } }),
+})
+defaultClone.data.value.details.label = "local"
 const cache = new QueryClient()
 expectTypeOf(cache.getQueryData(trpc.blog.get.queryKey({ id: 1 }))?.id).toEqualTypeOf<
   number | undefined

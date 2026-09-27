@@ -18,6 +18,7 @@ import {
   onMounted,
   onScopeDispose,
   onServerPrefetch,
+  readonly,
   ref,
   toRaw,
   toValue,
@@ -33,38 +34,41 @@ import type { ResolveOptions } from "./types"
  */
 export type AwaitableQuery<TQueryState> = TQueryState & Promise<TQueryState>
 
+type QueryDataValue<TOutput, TDefault, TClone extends boolean> = TClone extends true
+  ? TOutput | TDefault
+  : DeepReadonly<TOutput | TDefault>
+
 /** Vue Query state with cache-writing data assignment and an optional mutable local clone. */
-export type QueryResult<TOutput, TError, TClone extends boolean = false> = Omit<
-  UseQueryReturnType<TOutput, TError>,
-  "data"
-> & {
+export type QueryResult<
+  TOutput,
+  TError,
+  TClone extends boolean = false,
+  TDefault = undefined,
+> = Omit<UseQueryReturnType<TOutput, TError>, "data"> & {
   /**
    * Assign a whole response to update the shared cache for the current input.
    * Nested edits require clone: true and remain local until a whole value is assigned.
    * Successful cache updates replace that local clone and discard its edits.
    */
-  data: WritableComputedRef<
-    (TClone extends true ? TOutput : DeepReadonly<TOutput>) | undefined,
-    TOutput
-  >
+  data: WritableComputedRef<QueryDataValue<TOutput, TDefault, TClone>, TOutput>
   /** Invalidate this query's current input and refetch active observers. */
   invalidate: () => Promise<void>
 }
 
 /** Vue Query state projected through select while the cache retains the original response. */
-export type SelectedQueryResult<TSelected, TError> = Omit<
+export type SelectedQueryResult<TSelected, TError, TDefault = undefined> = Omit<
   UseQueryReturnType<TSelected, TError>,
   "data"
 > & {
   /** The selected value and its nested properties are readonly. */
-  data: ComputedRef<DeepReadonly<TSelected> | undefined>
+  data: ComputedRef<DeepReadonly<TSelected | TDefault>>
   /** Invalidate the underlying query for the current input and refetch active observers. */
   invalidate: () => Promise<void>
 }
 
 /**
  * Reactive Vue Query options; the procedure derives keys, query functions and key hashing.
- * The useQuery overloads add mutually exclusive select and clone options.
+ * The useQuery overloads add default values and mutually exclusive select and clone options.
  */
 export type ReactiveQueryOptions<TOutput, TError, TSelected = TOutput> = Omit<
   ResolveOptions<UseQueryOptions<TOutput, TError, TSelected>>,
@@ -77,7 +81,21 @@ export type ReactiveQueryOptions<TOutput, TError, TSelected = TOutput> = Omit<
   server?: boolean
 }
 
-type QueryInput<TInput> = MaybeRefOrGetter<TInput | SkipToken>
+/** A reactive procedure input or a token that disables its query. */
+export type QueryInput<TInput> = MaybeRefOrGetter<TInput | SkipToken>
+
+/** The value of the `default` option: a factory or `undefined`. */
+export type QueryDefaultFactory = (() => unknown) | undefined
+
+export type QueryDefaultOptions<TDefaultFactory extends QueryDefaultFactory> = {
+  /** Provide a local value while the query has no data without writing it to the cache. */
+  default?: TDefaultFactory
+  // Requiring a definite factory prevents an optional source field from inferring away `undefined`.
+} & (undefined extends TDefaultFactory ? object : { default: TDefaultFactory })
+
+/** Resolve the local default factory while preserving an optional factory's undefined branch. */
+export type QueryDefaultValue<TDefaultFactory extends QueryDefaultFactory> =
+  TDefaultFactory extends () => infer TDefault ? TDefault : undefined
 
 /** Omit input only when its type allows it, and options only when the protocol does not need them. */
 type QueryArgs<TInput, TOptions, TOptionsRequired extends boolean> = TOptionsRequired extends true
@@ -100,34 +118,43 @@ export interface QueryComposable<
   TOptionsRequired extends boolean = false,
 > {
   /** Observe a query with a mutable local clone; whole-value assignments update the shared cache. */
-  useQuery(
+  useQuery<TDefaultFactory extends QueryDefaultFactory = undefined>(
     input: QueryInput<TInput>,
     options: MaybeRefOrGetter<
-      ReactiveQueryOptions<TOutput, TError> & TOptions & { clone: true; select?: never }
+      ReactiveQueryOptions<TOutput, TError> &
+        TOptions &
+        QueryDefaultOptions<TDefaultFactory> & { clone: true; select?: never }
     >,
-  ): AwaitableQuery<QueryResult<TOutput, TError, true>>
+  ): AwaitableQuery<QueryResult<TOutput, TError, true, QueryDefaultValue<TDefaultFactory>>>
   /** Observe a readonly projection of cached data; select cannot be combined with clone: true. */
-  useQuery<TSelected>(
+  useQuery<TSelected, TDefaultFactory extends QueryDefaultFactory = undefined>(
     input: QueryInput<TInput>,
     options: MaybeRefOrGetter<
       ReactiveQueryOptions<TOutput, TError, TSelected> &
-        TOptions & { select: (data: TOutput) => TSelected; clone?: never }
+        TOptions &
+        QueryDefaultOptions<TDefaultFactory> & {
+          select: (data: TOutput) => TSelected
+          clone?: never
+        }
     >,
-  ): AwaitableQuery<SelectedQueryResult<TSelected, TError>>
+  ): AwaitableQuery<SelectedQueryResult<TSelected, TError, QueryDefaultValue<TDefaultFactory>>>
   /** Observe a reactive query with readonly nested data and cache-writing whole-value assignment. */
-  useQuery(
+  useQuery<TDefaultFactory extends QueryDefaultFactory = undefined>(
     ...args: QueryArgs<
       TInput,
       MaybeRefOrGetter<
-        ReactiveQueryOptions<TOutput, TError> & TOptions & { clone?: false; select?: never }
+        ReactiveQueryOptions<TOutput, TError> &
+          TOptions &
+          QueryDefaultOptions<TDefaultFactory> & { clone?: false; select?: never }
       >,
       TOptionsRequired
     >
-  ): AwaitableQuery<QueryResult<TOutput, TError>>
+  ): AwaitableQuery<QueryResult<TOutput, TError, false, QueryDefaultValue<TDefaultFactory>>>
 }
 
 type RuntimeOptions = ReactiveQueryOptions<unknown, Error> & {
   clone?: boolean
+  default?: () => unknown
   select?: (data: unknown) => unknown
 }
 
@@ -166,8 +193,14 @@ export function useReactiveQuery(
   const settings = computed(
     () => toValue(options as MaybeRefOrGetter<RuntimeOptions | undefined>) ?? {},
   )
+  // Create the fallback once per call without adding it to the query cache.
+  const defaultValue = settings.value.default?.()
+  const readonlyDefault =
+    typeof defaultValue === "object" && defaultValue !== null
+      ? readonly(defaultValue)
+      : defaultValue
   const queryOptions = computed(() => {
-    const { clone, server, enabled, ...rest } = settings.value
+    const { clone, default: _default, server, enabled, ...rest } = settings.value
     if (clone && rest.select) {
       throw new TypeError("clone: true cannot be combined with select.")
     }
@@ -191,7 +224,10 @@ export function useReactiveQuery(
   const localData = ref<unknown>()
   /** Discard local edits and copy the current query's data without retaining its readonly proxy. */
   function resetClone() {
-    if (settings.value.clone) localData.value = cloneDeep(toRaw(query.data.value))
+    if (settings.value.clone) {
+      const value = query.data.value === undefined ? defaultValue : query.data.value
+      localData.value = cloneDeep(toRaw(value))
+    }
   }
   watch([query.data, queryHash, () => settings.value.clone], resetClone, {
     immediate: true,
@@ -211,7 +247,11 @@ export function useReactiveQuery(
   onScopeDispose(unsubscribe)
 
   const data = computed({
-    get: () => (settings.value.clone ? localData.value : query.data.value),
+    get: () => {
+      if (settings.value.clone) return localData.value
+      const value = query.data.value
+      return value !== undefined || query.status.value === "success" ? value : readonlyDefault
+    },
     set(value: unknown) {
       if (settings.value.select) throw new TypeError("Query data is readonly when select is used.")
       // Use the current reactive key; callers own any external references to the assigned value.

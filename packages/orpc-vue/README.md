@@ -76,6 +76,23 @@ const query = await orpc.blog.posts.get.useQuery({ id: 1 })
 - `query.refetch()` fetches the current query again.
 - `query.invalidate()` marks its cached result as stale and refetches it if it is active.
 
+Pass a `default` factory when the component needs a value before query data is available:
+
+```ts
+const { data: posts } = await orpc.blog.posts.list.useQuery(undefined, {
+  default: () => [],
+})
+
+// posts.value is always an array.
+```
+
+The default appears while the query has no cached data, including while it is pending, disabled, skipped, or in an error state.
+The factory runs once for each `useQuery()` call.
+The returned value is never written to the cache and does not affect fetching.
+Unlike TanStack Query's `placeholderData`, it leaves the query status pending or error and does not set `isPlaceholderData`.
+With `select`, the default has the selected result's shape.
+With `clone: true`, the default is copied into mutable local data.
+
 ### Reactive input and options
 
 Pass a ref, reactive object, or getter when the input can change.

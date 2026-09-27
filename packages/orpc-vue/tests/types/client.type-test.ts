@@ -2,6 +2,7 @@ import type { Client, ORPCError, PromiseWithError } from "@orpc/client"
 import { createRouterClient, os } from "@orpc/server"
 import { QueryClient, skipToken } from "@tanstack/vue-query"
 import { catchORPCError, createORPCVueContext, createORPCVueQuery } from "orpc-vue"
+import { expectTypeOf } from "vitest"
 import { createSSRApp, reactive, ref } from "vue"
 import * as z from "zod"
 
@@ -156,12 +157,56 @@ async function inference() {
     author: { name: "new" },
   }
   const id: number | undefined = query.data.value?.id
+  type Post = NonNullable<typeof query.data.value>
+  expectTypeOf(query.data.value).toEqualTypeOf<Post | undefined>()
+  const optionalOptions: { default?: () => "optional" } = {}
+  const optionalDefault = orpc.get.useQuery({ id: 1 }, optionalOptions)
+  expectTypeOf(optionalDefault.data.value).toEqualTypeOf<Post | "optional" | undefined>()
+  const condition = true as boolean
+  const conditionalDefault = orpc.get.useQuery(
+    { id: 1 },
+    { default: condition ? () => "conditional" as const : undefined },
+  )
+  expectTypeOf(conditionalDefault.data.value).toEqualTypeOf<Post | "conditional" | undefined>()
+  const literalDefault = orpc.get.useQuery({ id: 1 }, { default: () => "literal" as const })
+  expectTypeOf(literalDefault.data.value).toEqualTypeOf<Post | "literal">()
+  const defaulted = orpc.get.useQuery(
+    { id: 1 },
+    { default: () => ({ id: 0, author: { name: "Loading" } }) },
+  )
+  expectTypeOf(defaulted.data.value.id).toEqualTypeOf<number>()
+  // @ts-expect-error Defaulted cached values remain deeply readonly.
+  defaulted.data.value.author.name = "wrong"
+  const nullable = orpc.get.useQuery({ id: 1 }, { default: () => null })
+  expectTypeOf(nullable.data.value).toEqualTypeOf<{
+    readonly id: number
+    readonly author: { readonly name: string }
+  } | null>()
+  // @ts-expect-error A display default cannot be assigned into the response cache.
+  nullable.data.value = null
+  nullable.data.value = { id: 2, author: { name: "cached" } }
   // @ts-expect-error Cached nested values are readonly without a clone.
   query.data.value!.author.name = "wrong"
   const clone = await orpc.get.useQuery({ id: 1 }, { clone: true })
   clone.data.value!.author.name = "local"
+  const defaultClone = orpc.get.useQuery(
+    { id: 1 },
+    {
+      clone: true,
+      default: () => ({ id: 0, author: { name: "Draft" } }),
+    },
+  )
+  defaultClone.data.value.author.name = "local"
   const selected = await orpc.get.useQuery({ id: 1 }, { select: (value) => value.author })
   const name: string | undefined = selected.data.value?.name
+  const selectedDefault = orpc.get.useQuery(
+    { id: 1 },
+    {
+      select: (value) => value.author,
+      default: () => ({ name: "Loading" }),
+    },
+  )
+  expectTypeOf(selectedDefault.data.value.name).toEqualTypeOf<string>()
   // @ts-expect-error Selected data cannot be assigned back into the raw cache.
   selected.data.value = { name: "wrong" }
   // @ts-expect-error Selected objects are deeply readonly.
