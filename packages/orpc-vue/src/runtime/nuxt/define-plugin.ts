@@ -15,7 +15,7 @@ import {
 import type { NuxtApp, Plugin } from "nuxt/app"
 
 import { createORPCVueQuery } from "../client/create"
-import type { ORPCVueQueryClient } from "../types"
+import type { ORPCVueQueryClient, ORPCVueQueryOptions } from "../types"
 
 export type { TransportContext as OrpcLinkContext } from "@rpc-vue/core/nuxt/client-plugin"
 
@@ -26,7 +26,8 @@ export type OrpcPluginOptions<TClient extends AnyNestedClient = AnyNestedClient>
     link:
       | ClientLink<InferClientContext<TClient>>
       | ((context: TransportContext) => ClientLink<InferClientContext<TClient>>)
-  }>
+  }> &
+    Pick<ORPCVueQueryOptions, "onUnexpectedError">
 
 /**
  * Create an oRPC client per Nuxt app and provide it as $orpc with inferred router types.
@@ -47,6 +48,7 @@ export function defineNuxtPlugin<TClient extends AnyNestedClient>(
       orpc: createORPCVueQuery(createORPCClient<TClient>(link), {
         prefix: options.prefix,
         queryClient,
+        onUnexpectedError: options.onUnexpectedError,
       }),
     }
   })

@@ -1,11 +1,14 @@
 import { mountSuspended } from "@nuxt/test-utils/runtime"
+import type { RouterClient } from "@orpc/server"
+import type { TestORPCHandler } from "orpc-vue/testing"
 import { expect, test, vi } from "vitest"
+import type { router } from "~~/server/orpc/router"
 
 import AwaitedError from "~/components/awaited-error.vue"
 import DeclaredError from "~/components/declared-error.vue"
 import PostList from "~/components/post-list.vue"
 
-import { client, procedures } from "./setup"
+import { client, onUnexpectedError, procedures } from "./setup"
 
 test("queries, mutates and invalidates through the test client", async () => {
   let title = "First post"
@@ -46,6 +49,25 @@ test("delivers an awaited query error to compiled script setup with its instance
 
   expect(component.get("#awaited-error").text()).toBe("Failed query")
   expect(component.get("#instance-restored").text()).toBe("true")
+  expect(onUnexpectedError).toHaveBeenCalledExactlyOnceWith(expect.any(Error), {
+    source: "query",
+    path: ["blog", "posts", "fail"],
+    input: undefined,
+  })
+})
+
+test("reports an unexpected setup error through the test client's hook", async () => {
+  const error = new Error("Failed query")
+  const handler: TestORPCHandler<RouterClient<typeof router>["blog"]["posts"]["list"]> = () => {
+    throw error
+  }
+  procedures.blog.posts.list.handle(handler)
+  await expect(mountSuspended(PostList)).rejects.toBe(error)
+  expect(onUnexpectedError).toHaveBeenCalledExactlyOnceWith(error, {
+    source: "query",
+    path: ["blog", "posts", "list"],
+    input: undefined,
+  })
 })
 
 /** Never called: the built testing entry must preserve procedure and decorated client types. */

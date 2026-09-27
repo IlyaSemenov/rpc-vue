@@ -144,7 +144,7 @@ This includes disabled queries, `skipToken`, queries waiting for the component t
 It does not wait for these queries to become enabled or resume fetching.
 
 During SSR, an awaited initial error reaches Nuxt's error page.
-During client-side navigation, it reaches Vue and Nuxt error handling, where an error boundary or hook can choose how to present it.
+During client-side navigation, Nuxt does not automatically show its error page for an ordinary RPC error; use [`onUnexpectedError`](#unexpected-browser-errors) to notify the user about undeclared errors.
 Set `rejectOnError: false` to resolve the await and inspect the error through `query.error.value` instead.
 Queries used without `await` also expose failures through `query.error.value`.
 Errors from later refetches update that ref without changing the already settled initial await.
@@ -252,6 +252,42 @@ Use `catchORPCError()` when calling a plain typed oRPC client:
 import { catchORPCError } from "orpc-vue"
 
 const post = await catchORPCError(client.blog.posts.get({ id }), { NOT_FOUND: null })
+```
+
+### Unexpected browser errors
+
+Set `onUnexpectedError` in `createORPCVueQuery()` options or in the options returned by your `orpc-vue/nuxt` plugin to show a shared notification for undeclared errors.
+It receives the error and `{ source, path, input }`, where `source` is `"call"`, `"callCatching"`, `"query"` or `"mutation"`.
+`input` may contain sensitive data such as passwords; do not log or send it.
+
+- The hook runs even when your code catches the error; calls still reject and query or mutation state keeps the error.
+- It runs in the browser once per failed call, mutation or query fetch, after retries, including initial awaited queries and refetches.
+- It does not run for declared errors, even without a matching handler, for cancellations, or during SSR.
+- It covers the decorated methods above; upstream `queryOptions()`, `mutationOptions()` and direct calls of the raw oRPC client are not reported.
+
+With [Nuxt UI's `useToast()`](https://ui.nuxt.com/docs/composables/use-toast), call it during plugin setup:
+
+```ts
+// app/plugins/orpc.ts
+import type { RouterClient } from "@orpc/server"
+import { defineNuxtPlugin } from "orpc-vue/nuxt"
+import type { router } from "~~/server/rpc/router"
+
+export default defineNuxtPlugin<RouterClient<typeof router>>(() => {
+  const toast = useToast()
+  const recent = new Set<string>()
+
+  return {
+    url: "/rpc",
+    onUnexpectedError(error) {
+      const message = error instanceof Error ? error.message : "Request failed"
+      if (recent.has(message)) return
+      recent.add(message)
+      setTimeout(() => recent.delete(message), 3_000)
+      toast.add({ title: "Request failed", description: message, color: "error" })
+    },
+  }
+})
 ```
 
 ### oRPC utilities
@@ -625,16 +661,22 @@ Each procedure leaf in `procedures` has a `.handle()` method that registers a ty
 import { mockNuxtImport } from "@nuxt/test-utils/runtime"
 import type { RouterClient } from "@orpc/server"
 import { createTestORPCClient } from "orpc-vue/testing"
-import { afterEach } from "vitest"
+import { afterEach, vi } from "vitest"
 
 import type { router } from "~~/server/rpc/router"
 
-export const { client, procedures, reset } = createTestORPCClient<RouterClient<typeof router>>()
+export const onUnexpectedError = vi.fn()
+export const { client, procedures, reset } = createTestORPCClient<RouterClient<typeof router>>({
+  onUnexpectedError,
+})
 
 // Return the composable itself; Vitest hoists this factory before the setup file runs.
 mockNuxtImport("useOrpc", () => () => client)
 
-afterEach(reset)
+afterEach(() => {
+  reset()
+  onUnexpectedError.mockClear()
+})
 ```
 
 `orpc-vue/testing` does not import `nuxt/app`, so the hoisted `mockNuxtImport()` factory can load it safely.
@@ -650,7 +692,7 @@ import { expect, test } from "vitest"
 
 import PostList from "~/components/post-list.vue"
 
-import { procedures } from "./setup"
+import { onUnexpectedError, procedures } from "./setup"
 
 test("renders the posts", async () => {
   const list = procedures.blog.posts.list.handle(() => [{ id: 1, title: "First post" }])
@@ -669,6 +711,7 @@ procedures.blog.posts.list.handle(() => {
 })
 
 await expect(mountSuspended(PostList)).rejects.toThrow("Failed query")
+expect(onUnexpectedError).toHaveBeenCalledOnce()
 ```
 
 Handlers replace your server procedures, so middleware and input and output validation do not run.

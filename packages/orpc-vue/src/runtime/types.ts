@@ -13,6 +13,7 @@ import type {
   ReactiveQueryOptions,
   SelectedQueryResult,
 } from "@rpc-vue/core/vue-query/query"
+import type { ClientOptions } from "@rpc-vue/core/vue-query/types"
 import type { MaybeRefOrGetter } from "vue"
 
 import type {
@@ -28,7 +29,28 @@ export type {
   QueryResult as ORPCQueryResult,
   SelectedQueryResult as ORPCSelectedQueryResult,
 } from "@rpc-vue/core/vue-query/query"
-export type { ClientOptions as ORPCVueQueryOptions } from "@rpc-vue/core/vue-query/types"
+
+/** The operation whose unexpected browser error is being reported. */
+export interface ORPCUnexpectedErrorContext {
+  /** The decorated client API that started the operation. */
+  readonly source: "call" | "callCatching" | "query" | "mutation"
+  /** Procedure path segments, without the cache namespace prefix. */
+  readonly path: readonly string[]
+  /** Procedure input; it may contain sensitive application data. */
+  readonly input: unknown
+}
+
+/** Report an unexpected browser error without handling or replacing it. */
+export type ORPCUnexpectedErrorHandler = (
+  error: unknown,
+  context: ORPCUnexpectedErrorContext,
+) => void | Promise<void>
+
+/** Configure cache ownership, namespacing and unexpected browser error reporting. */
+export interface ORPCVueQueryOptions extends ClientOptions {
+  /** Report final failures except declared errors and cancellations; never called during SSR. */
+  onUnexpectedError?: ORPCUnexpectedErrorHandler
+}
 
 /**
  * An oRPC client decorated with Vue composables and the official TanStack Query utilities.

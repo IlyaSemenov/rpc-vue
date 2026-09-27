@@ -88,7 +88,7 @@ export type TestORPCClient<TClient extends AnyNestedClient> = TestClient<
  * Without a `queryClient` the client owns one that never retries, so a failing procedure fails
  * the test instead of retrying until it times out.
  *
- * @param options - Cache key prefix and a QueryClient to use instead of the owned one.
+ * @param options - Cache ownership, key prefix and unexpected browser error reporting.
  * @returns A decorated client, its typed registration tree, its cache and a reset function.
  */
 export function createTestORPCClient<TClient extends AnyNestedClient>(
