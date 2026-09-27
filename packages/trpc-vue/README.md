@@ -11,7 +11,7 @@ const { data } = await trpc.blog.posts.get.useQuery({ id: 1 })
 ## Install
 
 ```sh
-npm install trpc-vue @trpc/client@11.19.0 @trpc/server@11.19.0 @tanstack/vue-query
+npm install trpc-vue @trpc/client @trpc/server @tanstack/vue-query
 ```
 
 Install the same version of `@trpc/client` and `@trpc/server`; this package needs `11.19.0` or newer.
