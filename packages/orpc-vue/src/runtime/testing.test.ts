@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 
-import { type Client, ORPCError } from "@orpc/client"
+import { type Client, onError, ORPCError } from "@orpc/client"
+import { effectScope } from "vue"
 
 import { catchORPCError } from "./client/error"
 import { createTestORPCClient } from "./testing"
@@ -74,5 +75,54 @@ describe("createTestORPCClient()", () => {
       }),
     ).resolves.toBe("title")
     expect(update.mock.calls).toEqual([[{ id: 1, title: "Duplicate" }]])
+  })
+
+  test("runs client interceptors before declared error handlers", async () => {
+    const errors: unknown[] = []
+    const { client, procedures } = createTestORPCClient<AppClient>({
+      interceptors: [
+        onError((error) => {
+          errors.push(error)
+        }),
+      ],
+    })
+    procedures.blog.posts.update.handle((_input, { errors }) => {
+      throw errors.CONFLICT({ data: { field: "title" } })
+    })
+
+    await expect(
+      client.blog.posts.update.callCatching(
+        { id: 1, title: "Duplicate" },
+        { CONFLICT: () => "handled" },
+      ),
+    ).resolves.toBe("handled")
+    expect(errors).toEqual([expect.objectContaining({ code: "CONFLICT" })])
+  })
+
+  test("applies client interceptors to calls, queries and mutations", async () => {
+    const paths: string[] = []
+    const { client, procedures } = createTestORPCClient<AppClient>({
+      interceptors: [
+        async ({ next, path }) => {
+          paths.push(path.join("."))
+          return await next()
+        },
+      ],
+    })
+    procedures.blog.posts.list.handle(() => [])
+    procedures.blog.posts.update.handle((input) => ({ ...input }))
+    const scope = effectScope()
+
+    try {
+      await client.blog.posts.list.call()
+      const query = scope.run(() => client.blog.posts.list.useQuery(undefined, { enabled: false }))!
+      await query.refetch()
+      const mutation = scope.run(() => client.blog.posts.update.useMutation())!
+      await mutation.mutateAsync({ id: 1, title: "Updated" })
+    } finally {
+      scope.stop()
+    }
+
+    expect(paths).toEqual(["blog.posts.list", "blog.posts.list", "blog.posts.update"])
   })
 })

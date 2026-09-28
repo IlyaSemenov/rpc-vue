@@ -245,6 +245,33 @@ Queries with the same `catching` codes share a cache entry and must map them to 
 Declared errors are never retried, including codes omitted from `catching`; other errors follow the `retry` option.
 An awaited query rejects when a declared error has no matching `catching` handler.
 
+Use a client interceptor for an application-wide policy on a declared error, such as redirecting after an expired session.
+The Nuxt plugin accepts the same `interceptors` option as `createORPCClient()`:
+
+```ts
+import { type InferClientError, isDefinedError, onError } from "@orpc/client"
+import type { RouterClient } from "@orpc/server"
+import { defineNuxtPlugin } from "orpc-vue/nuxt"
+import type { router } from "~~/server/rpc/router"
+
+type Client = RouterClient<typeof router>
+type ClientError = InferClientError<Client>
+
+export default defineNuxtPlugin<Client>((nuxtApp) => ({
+  url: "/rpc",
+  interceptors: [
+    onError(async (error: ClientError) => {
+      if (isDefinedError(error) && error.code === "AUTHENTICATION_REQUIRED") {
+        await nuxtApp.runWithContext(() => navigateTo("/login"))
+      }
+    }),
+  ],
+}))
+```
+
+An interceptor runs for every client attempt before `.callCatching()` or `catching` handles a declared error.
+Keep `onUnexpectedError` for a shared notification after retries of an undeclared error.
+
 `.callCatching()` is built on `catchORPCError()`, which handles errors of a promise returned directly by any typed oRPC client call.
 Use `catchORPCError()` when calling a plain typed oRPC client:
 
@@ -682,6 +709,7 @@ afterEach(() => {
 `orpc-vue/testing` does not import `nuxt/app`, so the hoisted `mockNuxtImport()` factory can load it safely.
 The client owns a QueryClient that never retries, so a failing procedure fails the test instead of timing out, and `reset()` removes the registered handlers together with the cached responses.
 Reach that cache as `queryClient` to seed or inspect it, or pass your own to `createTestORPCClient()`; `reset()` clears that one as well.
+Pass `interceptors` to run the same client policy in component tests.
 
 Register the required handlers before mounting; `mountSuspended()` waits for awaited queries before assertions:
 

@@ -1,4 +1,11 @@
-import type { Client, ORPCError } from "@orpc/client"
+import {
+  type Client,
+  type InferClientError,
+  isDefinedError,
+  onError,
+  type ORPCClientOptions,
+  type ORPCError,
+} from "@orpc/client"
 import { createTestORPCClient } from "orpc-vue/testing"
 
 type AppClient = {
@@ -14,7 +21,29 @@ type AppClient = {
   }
 }
 
+type DeclaredClient = {
+  get: Client<object, { id: number }, string, ORPCError<"MISSING", { id: number }>>
+}
+
+const declaredErrorInterceptor: NonNullable<
+  ORPCClientOptions<DeclaredClient>["interceptors"]
+>[number] = onError((error: InferClientError<DeclaredClient>) => {
+  if (isDefinedError(error)) {
+    error.code satisfies "MISSING"
+    error.data.id satisfies number
+  }
+})
+
+createTestORPCClient<DeclaredClient>({ interceptors: [declaredErrorInterceptor] })
+
 const { client, procedures } = createTestORPCClient<AppClient>({
+  interceptors: [
+    async ({ input, next, path }) => {
+      input satisfies unknown
+      path satisfies string[]
+      return await next()
+    },
+  ],
   onUnexpectedError(error, context) {
     error satisfies unknown
     context.source satisfies "call" | "callCatching" | "query" | "mutation"

@@ -1,3 +1,4 @@
+import type { ORPCClientOptions } from "@orpc/client"
 import { RPCLink } from "@orpc/client/fetch"
 import type { RouterClient } from "@orpc/server"
 import { type QueryClient, skipToken } from "@tanstack/vue-query"
@@ -8,12 +9,21 @@ import type { router } from "~~/server/orpc/router"
 
 /** Verify helper options at the package boundary without executing a Nuxt plugin. */
 export function checkPluginOptions() {
+  const interceptors: NonNullable<ORPCClientOptions<RouterClient<typeof router>>["interceptors"]> =
+    [
+      async ({ input, next, path }) => {
+        input satisfies unknown
+        path satisfies string[]
+        return await next()
+      },
+    ]
   defineNuxtPlugin<RouterClient<typeof router>>(() => ({
     url: "/orpc",
     serverUrl: "http://api:3000/orpc",
     credentials: "include",
     forwardHeaders: ["cookie"],
     prefix: "blog",
+    interceptors,
   }))
   // @ts-expect-error The RPC handler URL is required.
   defineNuxtPlugin<RouterClient<typeof router>>(() => ({}))

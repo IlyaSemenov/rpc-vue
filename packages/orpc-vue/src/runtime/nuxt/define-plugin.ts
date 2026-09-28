@@ -3,6 +3,7 @@ import {
   type ClientLink,
   createORPCClient,
   type InferClientContext,
+  type ORPCClientOptions,
 } from "@orpc/client"
 import { RPCLink } from "@orpc/client/fetch"
 import {
@@ -27,7 +28,8 @@ export type OrpcPluginOptions<TClient extends AnyNestedClient = AnyNestedClient>
       | ClientLink<InferClientContext<TClient>>
       | ((context: TransportContext) => ClientLink<InferClientContext<TClient>>)
   }> &
-    Pick<ORPCVueQueryOptions, "onUnexpectedError">
+    Pick<ORPCVueQueryOptions, "onUnexpectedError"> &
+    Pick<ORPCClientOptions<TClient>, "interceptors">
 
 /**
  * Create an oRPC client per Nuxt app and provide it as $orpc with inferred router types.
@@ -45,11 +47,16 @@ export function defineNuxtPlugin<TClient extends AnyNestedClient>(
         ? options.link(transport)
         : (options.link ?? createHTTPLink(options))
     return {
-      orpc: createORPCVueQuery(createORPCClient<TClient>(link), {
-        prefix: options.prefix,
-        queryClient,
-        onUnexpectedError: options.onUnexpectedError,
-      }),
+      orpc: createORPCVueQuery(
+        createORPCClient<TClient>(link, {
+          interceptors: options.interceptors,
+        }),
+        {
+          prefix: options.prefix,
+          queryClient,
+          onUnexpectedError: options.onUnexpectedError,
+        },
+      ),
     }
   })
 }

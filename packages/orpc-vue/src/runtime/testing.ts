@@ -4,6 +4,7 @@ import type {
   Client,
   ClientLink,
   InferClientContext,
+  ORPCClientOptions,
 } from "@orpc/client"
 import { createORPCClient, createORPCErrorFromJson, ORPCError } from "@orpc/client"
 import {
@@ -84,8 +85,12 @@ export type TestORPCProcedures<TClient extends AnyNestedClient> =
           : never
       }
 
-/** Configure a test client's cache, namespacing, error reporting and input copying. */
-export interface TestORPCClientOptions extends ORPCVueQueryOptions, TestClientOptions {}
+/** Configure a test client's cache, namespacing, interceptors, error reporting and input copying. */
+export interface TestORPCClientOptions<TClient extends AnyNestedClient = AnyNestedClient>
+  extends
+    ORPCVueQueryOptions,
+    TestClientOptions,
+    Pick<ORPCClientOptions<TClient>, "interceptors"> {}
 
 /** The isolated client, procedure registry and cleanup function created for a test suite. */
 export type TestORPCClient<TClient extends AnyNestedClient> = TestClient<
@@ -106,9 +111,9 @@ export type TestORPCClient<TClient extends AnyNestedClient> = TestClient<
  * @returns A decorated client, its typed registration tree, its cache and a reset function.
  */
 export function createTestORPCClient<TClient extends AnyNestedClient>(
-  options: TestORPCClientOptions = {},
+  options: TestORPCClientOptions<TClient> = {},
 ): TestORPCClient<TClient> {
-  const { copyInput, ...clientOptions } = options
+  const { copyInput, interceptors, ...clientOptions } = options
   const registry = createTestRegistry("oRPC", {
     queryClient: clientOptions.queryClient,
     copyInput,
@@ -120,7 +125,7 @@ export function createTestORPCClient<TClient extends AnyNestedClient>(
     },
   }
   return {
-    client: createORPCVueQuery(createORPCClient<TClient>(link), {
+    client: createORPCVueQuery(createORPCClient<TClient>(link, { interceptors }), {
       ...clientOptions,
       queryClient: registry.queryClient,
     }),
