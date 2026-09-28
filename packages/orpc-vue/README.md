@@ -717,6 +717,10 @@ expect(onUnexpectedError).toHaveBeenCalledOnce()
 Handlers replace your server procedures, so middleware and input and output validation do not run.
 To test server behavior, call your real router with `createRouterClient()`.
 
+A handler receives the object that was passed to the call, and its mock keeps a reference to it.
+If your components change an input after the call, for example by clearing a submitted form, pass `copyInput` to the test client, such as `copyInput: (input) => structuredClone(toRaw(input))`, and choose a copy that suits your data.
+`.handle(handler, { copyInput })` replaces that copy for one procedure, and `copyInput: false` turns copying off.
+
 The second handler argument provides typed error constructors derived from that procedure's `.errors()` map:
 
 ```ts

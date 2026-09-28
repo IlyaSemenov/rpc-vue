@@ -1,17 +1,31 @@
 import { describe, expect, test } from "bun:test"
 
 import { QueryClient } from "@tanstack/vue-query"
+import { reactive, toRaw } from "vue"
 
 import { createTestRegistry } from "./registry"
 
 type Procedures = {
   blog: {
-    posts: { list: { handle(handler: (input: unknown, options: unknown) => unknown): unknown } }
+    posts: {
+      list: {
+        handle(
+          handler: (input: unknown, options: unknown) => unknown,
+          options?: { copyInput?: ((input: unknown) => unknown) | false },
+        ): unknown
+      }
+    }
   }
 }
 
-function setup(queryClient?: QueryClient) {
-  const registry = createTestRegistry("RPC", queryClient, () => ({ tag: "options" }))
+type Mock = { mock: { calls: unknown[][] } }
+
+function setup(queryClient?: QueryClient, copyInput?: (input: unknown) => unknown) {
+  const registry = createTestRegistry("RPC", {
+    queryClient,
+    copyInput,
+    createHandlerOptions: () => ({ tag: "options" }),
+  })
   return { ...registry, procedures: registry.procedures as Procedures }
 }
 
@@ -71,5 +85,48 @@ describe("test registry", () => {
     expect(queryClient.getQueryData(["cached"])).toBeUndefined()
     expect(other.call("blog.posts.list", undefined)).toBe("other")
     expect(other.queryClient.getQueryData<string>(["cached"])).toBe("value")
+  })
+
+  describe("copyInput", () => {
+    const copyInput = (input: unknown) => structuredClone(toRaw(input))
+
+    test("passes the handler and its mock one copy taken at call time", async () => {
+      const { procedures, call } = setup(undefined, copyInput)
+      let received: unknown
+      const list = procedures.blog.posts.list.handle((input) => (received = input)) as Mock
+      const fields = reactive({ title: "Post" })
+
+      await call("blog.posts.list", fields)
+      fields.title = ""
+
+      expect(list).toHaveBeenCalledWith({ title: "Post" })
+      expect(list.mock.calls[0]?.[0]).toBe(received)
+    })
+
+    test("a registration's copyInput replaces the client's", async () => {
+      const { procedures, call } = setup(undefined, copyInput)
+      const list = procedures.blog.posts.list.handle((input) => input, {
+        copyInput: (input) => input,
+      }) as Mock
+      const fields = reactive({ title: "Post" })
+
+      await call("blog.posts.list", fields)
+      fields.title = ""
+
+      expect(list).toHaveBeenCalledWith({ title: "" })
+      expect(list.mock.calls[0]?.[0]).toBe(fields)
+    })
+
+    test("a registration's false turns off the client's copyInput", async () => {
+      const { procedures, call } = setup(undefined, copyInput)
+      const list = procedures.blog.posts.list.handle((input) => input, {
+        copyInput: false,
+      }) as Mock
+      const fields = reactive({ title: "Post" })
+
+      await call("blog.posts.list", fields)
+
+      expect(list.mock.calls[0]?.[0]).toBe(fields)
+    })
   })
 })

@@ -6,7 +6,12 @@ import type {
   InferClientContext,
 } from "@orpc/client"
 import { createORPCClient, createORPCErrorFromJson, ORPCError } from "@orpc/client"
-import { createTestRegistry, type TestClient } from "@rpc-vue/core/testing/registry"
+import {
+  createTestRegistry,
+  type TestClient,
+  type TestClientOptions,
+  type TestHandleOptions,
+} from "@rpc-vue/core/testing/registry"
 import type { Mock } from "vitest"
 
 import { createORPCVueQuery } from "./client/create"
@@ -17,6 +22,9 @@ type RuntimeHandlerOptions = {
   errors: Record<string, (options?: RuntimeErrorOptions) => AnyORPCError>
 }
 type RuntimeErrorOptions = ErrorOptions & { message?: string; data?: unknown }
+
+type ProcedureInput<TProcedure> =
+  TProcedure extends Client<any, infer Input, any, any> ? Input : never
 
 type ProcedureError<TProcedure> =
   TProcedure extends Client<any, any, any, infer Error> ? Extract<Error, AnyORPCError> : never
@@ -60,7 +68,10 @@ type TestORPCMockHandler<TProcedure> =
 /** Registration methods for one procedure in a test client. */
 export interface TestORPCProcedure<TProcedure> {
   /** Register the implementation used by subsequent calls and return its Vitest mock. */
-  handle(handler: TestORPCHandler<TProcedure>): Mock<TestORPCMockHandler<TProcedure>>
+  handle(
+    handler: TestORPCHandler<TProcedure>,
+    options?: TestHandleOptions<ProcedureInput<TProcedure>>,
+  ): Mock<TestORPCMockHandler<TProcedure>>
 }
 
 /** A router-shaped tree whose procedure leaves register test implementations. */
@@ -72,6 +83,9 @@ export type TestORPCProcedures<TClient extends AnyNestedClient> =
           ? TestORPCProcedures<TClient[Key]>
           : never
       }
+
+/** Configure a test client's cache, namespacing, error reporting and input copying. */
+export interface TestORPCClientOptions extends ORPCVueQueryOptions, TestClientOptions {}
 
 /** The isolated client, procedure registry and cleanup function created for a test suite. */
 export type TestORPCClient<TClient extends AnyNestedClient> = TestClient<
@@ -88,15 +102,18 @@ export type TestORPCClient<TClient extends AnyNestedClient> = TestClient<
  * Without a `queryClient` the client owns one that never retries, so a failing procedure fails
  * the test instead of retrying until it times out.
  *
- * @param options - Cache ownership, key prefix and unexpected browser error reporting.
+ * @param options - Cache ownership, key prefix, unexpected browser error reporting and input copying.
  * @returns A decorated client, its typed registration tree, its cache and a reset function.
  */
 export function createTestORPCClient<TClient extends AnyNestedClient>(
-  options: ORPCVueQueryOptions = {},
+  options: TestORPCClientOptions = {},
 ): TestORPCClient<TClient> {
-  const registry = createTestRegistry("oRPC", options.queryClient, () => ({
-    errors: createErrorConstructors(),
-  }))
+  const { copyInput, ...clientOptions } = options
+  const registry = createTestRegistry("oRPC", {
+    queryClient: clientOptions.queryClient,
+    copyInput,
+    createHandlerOptions: () => ({ errors: createErrorConstructors() }),
+  })
   const link: ClientLink<InferClientContext<TClient>> = {
     async call(path, input) {
       return await registry.call(path.join("."), input)
@@ -104,7 +121,7 @@ export function createTestORPCClient<TClient extends AnyNestedClient>(
   }
   return {
     client: createORPCVueQuery(createORPCClient<TClient>(link), {
-      ...options,
+      ...clientOptions,
       queryClient: registry.queryClient,
     }),
     procedures: registry.procedures as TestORPCProcedures<TClient>,

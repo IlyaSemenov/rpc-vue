@@ -1,4 +1,9 @@
-import { createTestRegistry, type TestClient } from "@rpc-vue/core/testing/registry"
+import {
+  createTestRegistry,
+  type TestClient,
+  type TestClientOptions,
+  type TestHandleOptions,
+} from "@rpc-vue/core/testing/registry"
 import { createTRPCClient, TRPCClientError, type TRPCLink } from "@trpc/client"
 import type {
   AnyTRPCProcedure,
@@ -31,6 +36,7 @@ export type TestTRPCProcedures<
           /** Register the implementation used by subsequent calls and return its Vitest mock. */
           handle(
             handler: TestTRPCHandler<TRouter, Record[TKey]>,
+            options?: TestHandleOptions<inferProcedureInput<Record[TKey]>>,
           ): Mock<TestTRPCHandler<TRouter, Record[TKey]>>
         }
       : never
@@ -38,6 +44,9 @@ export type TestTRPCProcedures<
       ? TestTRPCProcedures<TRouter, Record[TKey]>
       : never
 }
+
+/** Configure a test client's cache, namespacing and input copying. */
+export interface TestTRPCClientOptions extends TRPCVueQueryOptions, TestClientOptions {}
 
 /** The isolated client, procedure registry and cleanup function created for a test suite. */
 export type TestTRPCClient<TRouter extends AnyTRPCRouter> = TestClient<
@@ -55,13 +64,14 @@ export type TestTRPCClient<TRouter extends AnyTRPCRouter> = TestClient<
  * Without a `queryClient` the client owns one that never retries, so a failing procedure fails
  * the test instead of retrying until it times out.
  *
- * @param options - Cache key prefix and a QueryClient to use instead of the owned one.
+ * @param options - Cache key prefix, a QueryClient to use instead of the owned one and input copying.
  * @returns A decorated client, its typed registration tree, its cache and a reset function.
  */
 export function createTestTRPCClient<TRouter extends AnyTRPCRouter>(
-  options: TRPCVueQueryOptions = {},
+  options: TestTRPCClientOptions = {},
 ): TestTRPCClient<TRouter> {
-  const registry = createTestRegistry("tRPC", options.queryClient)
+  const { copyInput, ...clientOptions } = options
+  const registry = createTestRegistry("tRPC", { queryClient: clientOptions.queryClient, copyInput })
   const link: TRPCLink<TRouter> =
     () =>
     ({ op }) =>
@@ -78,7 +88,7 @@ export function createTestTRPCClient<TRouter extends AnyTRPCRouter>(
       })
   return {
     client: createTRPCVueQuery(createTRPCClient<TRouter>({ links: [link] }), {
-      ...options,
+      ...clientOptions,
       queryClient: registry.queryClient,
     }),
     procedures: registry.procedures as TestTRPCProcedures<TRouter>,
