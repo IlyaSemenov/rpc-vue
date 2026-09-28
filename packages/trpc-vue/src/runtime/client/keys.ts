@@ -27,7 +27,7 @@ export function createQueryKey(
     typeof input === "object" &&
     ("cursor" in input || "direction" in input)
   ) {
-    const { cursor, direction, ...rest } = input as Record<string, unknown>
+    const { cursor: _cursor, direction: _direction, ...rest } = input as Record<string, unknown>
     input = rest
   }
   return [

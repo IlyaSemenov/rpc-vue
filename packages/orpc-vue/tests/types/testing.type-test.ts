@@ -50,7 +50,7 @@ const { client, procedures } = createTestORPCClient<AppClient>({
     context.path satisfies readonly string[]
     context.input satisfies unknown
     // @ts-expect-error A global hook cannot assume any procedure's input type.
-    context.input.id
+    void context.input.id
   },
 })
 

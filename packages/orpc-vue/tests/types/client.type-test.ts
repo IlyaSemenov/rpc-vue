@@ -54,7 +54,7 @@ async function definedErrorInference() {
       // @ts-expect-error The handler receives only the matching error branch.
       error.code satisfies "NOT_FOUND"
       // @ts-expect-error Error data retains its schema-derived shape.
-      error.data.missing
+      void error.data.missing
       return 409 as const
     },
     NOT_FOUND: async (error) => {
@@ -510,3 +510,4 @@ void nestedInference
 void contextInference
 void vueContextInference
 void definedErrorInference
+void callCatchingInference
