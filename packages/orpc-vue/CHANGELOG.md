@@ -1,5 +1,11 @@
 # orpc-vue
 
+## 0.13.0
+
+### Minor Changes
+
+- fc1ea55: Nuxt plugins and test clients accept standard oRPC client interceptors.
+
 ## 0.12.0
 
 ### Minor Changes
