@@ -1,6 +1,6 @@
 {
   "name": "orpc-vue",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "description": "oRPC integration for Vue and Nuxt with TanStack Vue Query composables.",
   "homepage": "https://github.com/IlyaSemenov/rpc-vue/tree/main/packages/orpc-vue#readme",
   "bugs": "https://github.com/IlyaSemenov/rpc-vue/issues",

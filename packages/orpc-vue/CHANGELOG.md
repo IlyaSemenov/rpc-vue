@@ -1,5 +1,11 @@
 # orpc-vue
 
+## 0.12.0
+
+### Minor Changes
+
+- 9908e51: Test clients and `.handle()` accept a `copyInput` option that copies each procedure input before the handler and its mock receive it.
+
 ## 0.11.0
 
 ### Minor Changes
