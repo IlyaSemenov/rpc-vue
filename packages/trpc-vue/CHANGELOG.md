@@ -1,5 +1,11 @@
 # trpc-vue
 
+## 0.3.1
+
+### Patch Changes
+
+- 4bb093e: Accept devalue 6 in addition to devalue 5.
+
 ## 0.3.0
 
 ### Minor Changes

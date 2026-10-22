@@ -1,5 +1,11 @@
 # orpc-vue
 
+## 0.13.1
+
+### Patch Changes
+
+- 4bb093e: Accept devalue 6 in addition to devalue 5.
+
 ## 0.13.0
 
 ### Minor Changes
