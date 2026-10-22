@@ -22,7 +22,7 @@
         "@tsconfig/bun": "^1.0.10",
         "@types/bun": "^1.3.14",
         "@vue/server-renderer": "^3.5.0",
-        "devalue": "^5.0.0",
+        "devalue": "^5.0.0 || ^6.0.0",
         "es-toolkit": "^1.52.0",
         "nuxt": "^4.5.2",
         "tsdown": "^0.22.14",
@@ -46,7 +46,7 @@
         "@tsconfig/bun": "^1.0.10",
         "@types/bun": "^1.3.14",
         "@vue/server-renderer": "^3.5.0",
-        "devalue": "^5.0.0",
+        "devalue": "^5.0.0 || ^6.0.0",
         "nuxt": "^4.5.2",
         "orpc-vue": "workspace:*",
         "superjson": "^2.2.6",
@@ -61,7 +61,7 @@
       "name": "orpc-vue",
       "version": "0.13.0",
       "dependencies": {
-        "devalue": "^5.0.0",
+        "devalue": "^5.0.0 || ^6.0.0",
         "es-toolkit": "^1.52.0",
       },
       "devDependencies": {
@@ -105,7 +105,7 @@
       "name": "trpc-vue",
       "version": "0.3.0",
       "dependencies": {
-        "devalue": "^5.0.0",
+        "devalue": "^5.0.0 || ^6.0.0",
         "es-toolkit": "^1.52.0",
       },
       "devDependencies": {
