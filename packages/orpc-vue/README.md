@@ -246,26 +246,51 @@ Declared errors are never retried, including codes omitted from `catching`; othe
 An awaited query rejects when a declared error has no matching `catching` handler.
 
 Use a client interceptor for an application-wide policy on a declared error, such as redirecting after an expired session.
+`InferClientError` only includes codes that some procedure of the router declares, so add each code the policy handles to its error type.
+The policy then keeps compiling while no procedure declares that code.
+Define it in a module shared by the plugin and [component tests](#component-tests):
+
+```ts
+// app/orpc.ts
+import {
+  type InferClientError,
+  isDefinedError,
+  onError,
+  type ORPCClientOptions,
+  type ORPCError,
+} from "@orpc/client"
+import type { RouterClient } from "@orpc/server"
+import type { router } from "~~/server/rpc/router"
+
+export type Client = RouterClient<typeof router>
+
+type ClientError = InferClientError<Client> | ORPCError<"AUTHENTICATION_REQUIRED", unknown>
+
+export function createClientInterceptors(
+  onAuthenticationRequired: () => void | Promise<void>,
+): NonNullable<ORPCClientOptions<Client>["interceptors"]> {
+  return [
+    onError(async (error: ClientError) => {
+      if (isDefinedError(error) && error.code === "AUTHENTICATION_REQUIRED") {
+        await onAuthenticationRequired()
+      }
+    }),
+  ]
+}
+```
+
 The Nuxt plugin accepts the same `interceptors` option as `createORPCClient()`:
 
 ```ts
-import { type InferClientError, isDefinedError, onError } from "@orpc/client"
-import type { RouterClient } from "@orpc/server"
+// app/plugins/orpc.ts
 import { defineNuxtPlugin } from "orpc-vue/nuxt"
-import type { router } from "~~/server/rpc/router"
-
-type Client = RouterClient<typeof router>
-type ClientError = InferClientError<Client>
+import { type Client, createClientInterceptors } from "~/orpc"
 
 export default defineNuxtPlugin<Client>(nuxtApp => ({
   url: "/rpc",
-  interceptors: [
-    onError(async (error: ClientError) => {
-      if (isDefinedError(error) && error.code === "AUTHENTICATION_REQUIRED") {
-        await nuxtApp.runWithContext(() => navigateTo("/login"))
-      }
-    }),
-  ],
+  interceptors: createClientInterceptors(async () => {
+    await nuxtApp.runWithContext(() => navigateTo("/login"))
+  }),
 }))
 ```
 
@@ -710,7 +735,23 @@ afterEach(() => {
 `orpc-vue/testing` does not import `nuxt/app`, so the hoisted `mockNuxtImport()` factory can load it safely.
 The client owns a QueryClient that never retries, so a failing procedure fails the test instead of timing out, and `reset()` removes the registered handlers together with the cached responses.
 Reach that cache as `queryClient` to seed or inspect it, or pass your own to `createTestORPCClient()`; `reset()` clears that one as well.
-Pass `interceptors` to run the same client policy in component tests.
+Pass `interceptors` to run the same [client policy](#declared-errors) in component tests:
+
+```ts
+import { type Client, createClientInterceptors } from "~/orpc"
+
+export const onAuthenticationRequired = vi.fn()
+export const { client, procedures, reset } = createTestORPCClient<Client>({
+  interceptors: createClientInterceptors(onAuthenticationRequired),
+  onUnexpectedError,
+})
+
+afterEach(() => {
+  reset()
+  onUnexpectedError.mockClear()
+  onAuthenticationRequired.mockClear()
+})
+```
 
 Register the required handlers before mounting; `mountSuspended()` waits for awaited queries before assertions:
 

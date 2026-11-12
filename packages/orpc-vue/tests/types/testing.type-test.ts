@@ -36,6 +36,27 @@ const declaredErrorInterceptor: NonNullable<
 
 createTestORPCClient<DeclaredClient>({ interceptors: [declaredErrorInterceptor] })
 
+/** Build an app-wide policy for a declared code that no procedure of `DeclaredClient` declares. */
+function createAppPolicy(
+  onAuthenticationRequired: () => void,
+): NonNullable<ORPCClientOptions<DeclaredClient>["interceptors"]> {
+  return [
+    onError(
+      (error: InferClientError<DeclaredClient> | ORPCError<"AUTHENTICATION_REQUIRED", unknown>) => {
+        if (isDefinedError(error) && error.code === "AUTHENTICATION_REQUIRED") {
+          onAuthenticationRequired()
+        }
+        // @ts-expect-error Codes outside the router and the policy's own union remain errors.
+        if (isDefinedError(error) && error.code === "AUTHENTICATION_REQUIERD") {
+          onAuthenticationRequired()
+        }
+      },
+    ),
+  ]
+}
+
+createTestORPCClient<DeclaredClient>({ interceptors: createAppPolicy(() => {}) })
+
 const { client, procedures } = createTestORPCClient<AppClient>({
   interceptors: [
     async ({ input, next, path }) => {
