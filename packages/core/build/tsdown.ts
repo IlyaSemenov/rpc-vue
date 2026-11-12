@@ -12,6 +12,6 @@ export default defineConfig({
   },
   platform: "neutral",
   // Emit workspace declarations together so re-exported core types are available to the bundler.
-  dts: { eager: true },
+  dts: { tsc: { eager: true } },
   publint: true,
 })

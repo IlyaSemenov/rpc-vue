@@ -68,7 +68,7 @@
     "@vue/test-utils": "^2.5.0",
     "happy-dom": "^20.14.3",
     "nuxt": "^4.5.2",
-    "publint": "^0.3.22",
+    "publint": "^0.3.25",
     "react": "^19.0.0",
     "superjson": "^2.2.6",
     "typescript": "^5.9.3",
