@@ -395,6 +395,7 @@ Create a typed context for accessing the client from components:
 // orpc-context.ts
 import type { RouterClient } from "@orpc/server"
 import { createORPCVueContext } from "orpc-vue"
+
 import type { router } from "./server/router"
 
 export const orpcContext = createORPCVueContext<RouterClient<typeof router>>()
@@ -408,8 +409,9 @@ import { createORPCClient } from "@orpc/client"
 import { RPCLink } from "@orpc/client/fetch"
 import type { RouterClient } from "@orpc/server"
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query"
-import { createApp } from "vue"
 import { createORPCVueQuery } from "orpc-vue"
+import { createApp } from "vue"
+
 import App from "./App.vue"
 import { orpcContext } from "./orpc-context"
 import type { router } from "./server/router"
@@ -689,7 +691,6 @@ import { mockNuxtImport } from "@nuxt/test-utils/runtime"
 import type { RouterClient } from "@orpc/server"
 import { createTestORPCClient } from "orpc-vue/testing"
 import { afterEach, vi } from "vitest"
-
 import type { router } from "~~/server/rpc/router"
 
 export const onUnexpectedError = vi.fn()

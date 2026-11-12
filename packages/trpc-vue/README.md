@@ -316,6 +316,7 @@ Create a typed context for accessing the client from components:
 ```ts
 // trpc-context.ts
 import { createTRPCVueContext } from "trpc-vue"
+
 import type { AppRouter } from "./server/router"
 
 export const trpcContext = createTRPCVueContext<AppRouter>()
@@ -327,8 +328,9 @@ Install Vue Query and provide the tRPC client:
 // main.ts
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query"
 import { createTRPCClient, httpBatchLink } from "@trpc/client"
-import { createApp } from "vue"
 import { createTRPCVueQuery } from "trpc-vue"
+import { createApp } from "vue"
+
 import App from "./App.vue"
 import type { AppRouter } from "./server/router"
 import { trpcContext } from "./trpc-context"
@@ -604,7 +606,6 @@ Each query and mutation leaf in `procedures` has a `.handle()` method that regis
 import { mockNuxtImport } from "@nuxt/test-utils/runtime"
 import { createTestTRPCClient } from "trpc-vue/testing"
 import { afterEach } from "vitest"
-
 import type { AppRouter } from "~~/server/trpc/router"
 
 export const { client, procedures, reset } = createTestTRPCClient<AppRouter>()
