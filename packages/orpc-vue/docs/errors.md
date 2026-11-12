@@ -134,6 +134,7 @@ With [Nuxt UI's `useToast()`](https://ui.nuxt.com/docs/composables/use-toast), c
 ```ts
 // app/plugins/orpc.ts
 import type { RouterClient } from "@orpc/server"
+import { ORPCNetworkError } from "orpc-vue"
 import { defineNuxtPlugin } from "orpc-vue/nuxt"
 import type { router } from "~~/server/rpc/router"
 
@@ -148,8 +149,18 @@ export default defineNuxtPlugin<RouterClient<typeof router>>(() => {
       if (recent.has(message)) return
       recent.add(message)
       setTimeout(() => recent.delete(message), 3_000)
-      toast.add({ title: "Request failed", description: message, color: "error" })
+      const title = error instanceof ORPCNetworkError ? "Connection failed" : "Request failed"
+      toast.add({ title, description: message, color: "error" })
     },
   }
 })
 ```
+
+### Network failures
+
+When `fetch` rejects without a response available to the client, for example because the browser is offline, the server is unreachable or CORS blocks the response, the plugin's HTTP transport rejects the call with `ORPCNetworkError`.
+The original `fetch` rejection is its `cause`.
+Use it to tell connection problems apart from failed requests, in `onUnexpectedError` or when filtering errors before sending them to an error tracker.
+
+A call whose `signal` is aborted, including by `AbortSignal.timeout()`, keeps its original rejection.
+The plugin does not add `ORPCNetworkError` to a [custom link](./nuxt-client#custom-link) or a [manual client setup](./nuxt-client#manual-client-setup); their transport determines how `fetch` rejections reach the caller.

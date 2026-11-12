@@ -14,8 +14,18 @@ test("reports through the client plugin in the browser but never during SSR", as
   )
   await page.goto("/unexpected-errors")
   await expect(page.locator("#unexpected-count")).toHaveText("1")
+  await expect(page.locator("#unexpected-kind")).toHaveText("server")
   await page.locator("#unexpected-refetch").click()
   await expect(page.locator("#unexpected-count")).toHaveText("2")
+})
+
+test("reports a request without a response as ORPCNetworkError", async ({ page }) => {
+  await page.goto("/unexpected-errors")
+  await expect(page.locator("#unexpected-count")).toHaveText("1")
+  await page.route("**/orpc/**", route => route.abort("internetdisconnected"))
+  await page.locator("#unexpected-refetch").click()
+  await expect(page.locator("#unexpected-count")).toHaveText("2")
+  await expect(page.locator("#unexpected-kind")).toHaveText("network")
 })
 
 test("hydrates a caught declared error as successful data", async ({ page }) => {

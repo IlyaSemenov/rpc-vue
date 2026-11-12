@@ -16,6 +16,7 @@ import {
 import type { NuxtApp, Plugin } from "nuxt/app"
 
 import { createORPCVueQuery } from "../client/create"
+import { rejectWithNetworkErrors } from "../client/network-error"
 import type { ORPCVueQueryClient, ORPCVueQueryOptions } from "../types"
 
 export type { TransportContext as OrpcLinkContext } from "@rpc-vue/core/nuxt/client-plugin"
@@ -35,6 +36,8 @@ export type OrpcPluginOptions<TClient extends AnyNestedClient = AnyNestedClient>
  * Create an oRPC client per Nuxt app and provide it as $orpc with inferred router types.
  * The setup callback runs once per SSR request and once when the browser app starts.
  * A custom link factory also runs once per app and receives its Nuxt app and H3 event.
+ * The default HTTP transport rejects a call with `ORPCNetworkError` when `fetch` rejects
+ * without a response and the call's signal is not aborted.
  * Install Vue Query before this plugin, or return an explicit queryClient from setup.
  * Its QueryClient is captured immediately, so invalidate works before any composable runs.
  */
@@ -61,7 +64,10 @@ export function defineNuxtPlugin<TClient extends AnyNestedClient>(
   })
 }
 
-/** Build the helper's default HTTP link after the custom-link branch has been excluded. */
+/**
+ * Build the helper's default HTTP link after the custom-link branch has been excluded.
+ * A `fetch` rejection of a request whose signal is not aborted becomes `ORPCNetworkError`.
+ */
 function createHTTPLink(options: HttpTransportOptions) {
   const { url, headers, fetch } = resolveHttpTransport(options, "orpc-vue")
   return new RPCLink({
@@ -70,6 +76,6 @@ function createHTTPLink(options: HttpTransportOptions) {
     // HTTP URL.pathname always starts with the slash required by StandardUrl.
     url: `${url.pathname}${url.search}` as `/${string}`,
     headers,
-    fetch,
+    fetch: rejectWithNetworkErrors(fetch),
   })
 }
