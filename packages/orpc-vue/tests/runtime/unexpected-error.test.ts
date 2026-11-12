@@ -49,7 +49,7 @@ function setup(onUnexpectedError = mock<ORPCUnexpectedErrorHandler>(() => {})) {
 
 test.each(["call", "callCatching"] as const)(
   "reports %s and preserves the rejection",
-  async (source) => {
+  async source => {
     const { client, error, onUnexpectedError } = setup()
     const input = { id: 1 }
     const promise =
@@ -63,7 +63,7 @@ test.each(["call", "callCatching"] as const)(
 
 test.each([true, false])(
   "reports awaited queries with rejectOnError=%s once after all retries",
-  async (rejectOnError) => {
+  async rejectOnError => {
     const { client, scope, transport, error, onUnexpectedError } = setup()
     const input = { id: 2 }
     const queries = [1, 2].map(() =>
@@ -76,7 +76,7 @@ test.each([true, false])(
       )!,
     )
     const results = await Promise.allSettled(queries)
-    expect(results.map((result) => result.status)).toEqual(
+    expect(results.map(result => result.status)).toEqual(
       rejectOnError ? ["rejected", "rejected"] : ["fulfilled", "fulfilled"],
     )
     expect(queries[0]!.error.value).toBe(error)
@@ -104,7 +104,7 @@ test("reports queries used without await and failures following a successful fet
 
 test.each(["mutate", "mutateAsync"] as const)(
   "reports %s once after retries and preserves state",
-  async (method) => {
+  async method => {
     const { client, scope, transport, error, onUnexpectedError } = setup()
     const onError = mock(() => {})
     const mutation = scope.run(() =>
@@ -114,7 +114,7 @@ test.each(["mutate", "mutateAsync"] as const)(
     if (method === "mutateAsync") {
       await expect(mutation.mutateAsync(input)).rejects.toBe(error)
     } else {
-      await new Promise<void>((resolve) => mutation.mutate(input, { onSettled: () => resolve() }))
+      await new Promise<void>(resolve => mutation.mutate(input, { onSettled: () => resolve() }))
     }
     await nextTick()
     expect(mutation.error.value).toBe(error)
@@ -149,7 +149,7 @@ test("does not report declared errors, handled or not, through any API", async (
 
 test.each([new DOMException("Aborted", "AbortError"), new CancelledError()])(
   "does not report cancellations: %s",
-  async (error) => {
+  async error => {
     const { client, scope, transport, onUnexpectedError } = setup()
     transport.mockImplementation(async () => {
       throw error
@@ -201,7 +201,7 @@ test("never reports on the server", async () => {
   expect(onUnexpectedError).not.toHaveBeenCalled()
 })
 
-test.each([false, true])("isolates hook failures (async=%s)", async (async) => {
+test.each([false, true])("isolates hook failures (async=%s)", async async => {
   const hookError = new Error("Broken toast")
   const onUnexpectedError = mock<ORPCUnexpectedErrorHandler>(() => {
     if (async) return Promise.reject(hookError)

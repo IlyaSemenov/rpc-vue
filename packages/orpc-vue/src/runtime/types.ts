@@ -3,8 +3,8 @@ import type { RouterUtils } from "@orpc/tanstack-query"
 import type { MutationComposable, ReactiveMutationOptions } from "@rpc-vue/core/vue-query/mutation"
 import type {
   AwaitableQuery,
-  QueryComposable,
   QueryArgs,
+  QueryComposable,
   QueryDefaultFactory,
   QueryDefaultOptions,
   QueryDefaultValue,

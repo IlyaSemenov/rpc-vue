@@ -116,7 +116,7 @@ test("HTTP integration preserves formatted error data and error identity through
   const trpc = createTRPCVueQuery<typeof router>(raw, { queryClient })
   const scope = effectScope()
   try {
-    queryClient.getQueryCache().subscribe((event) => {
+    queryClient.getQueryCache().subscribe(event => {
       if (event.type === "updated" && event.action.type === "error") seenError = event.action.error
     })
     const query = scope.run(() => trpc.fail.useQuery())!

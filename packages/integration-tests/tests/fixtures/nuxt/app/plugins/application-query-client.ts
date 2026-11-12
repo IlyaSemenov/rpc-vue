@@ -1,6 +1,6 @@
 import {
-  type DehydratedState,
   dehydrate,
+  type DehydratedState,
   hydrate,
   QueryClient,
   VueQueryPlugin,

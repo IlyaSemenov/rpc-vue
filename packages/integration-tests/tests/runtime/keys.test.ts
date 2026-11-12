@@ -30,7 +30,7 @@ for (const owner of ["orpc", "trpc", "application"]) {
         orpc.read.queryKey({ input: { value: 1n, other: 2 } }),
       ]
       keys.forEach((key, i) => queryClient.setQueryData(key, String(i)))
-      expect(keys.map((key) => queryClient.getQueryData(key))).toEqual(["0", "1", "2"])
+      expect(keys.map(key => queryClient.getQueryData(key))).toEqual(["0", "1", "2"])
       expect(queryClient.getQueryData(orpc.read.queryKey({ input: { other: 2, value: 1n } }))).toBe(
         "2",
       )

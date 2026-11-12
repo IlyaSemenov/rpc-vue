@@ -310,7 +310,7 @@ describe("query composable", () => {
     const { scope, useItem } = setup()
 
     const thened = scope.run(() => useItem({ id: 1 }))!
-    expect(await thened.then((result) => result.data.value?.id)).toBe(1)
+    expect(await thened.then(result => result.data.value?.id)).toBe(1)
 
     const caught = scope.run(() => useItem({ id: -1 }))!
     const caughtPromise = caught.catch((error: Error) => error.message)
@@ -339,7 +339,7 @@ describe("query composable", () => {
     const { scope, useItem } = setup()
     const input = reactive({ id: 1 })
     const query = scope.run(() => useItem(input))!
-    const initial = query.then((result) => result)
+    const initial = query.then(result => result)
     expect((await initial).data).toBe(query.data)
 
     input.id = -1
@@ -410,7 +410,7 @@ describe("query composable", () => {
       },
       render: () => h("p", "unreachable"),
     })
-    app.config.errorHandler = (error) => errors.push(error)
+    app.config.errorHandler = error => errors.push(error)
     await renderToString(app)
     expect(errors).toHaveLength(1)
     expect(errors[0]).toHaveProperty("message", "Missing item")

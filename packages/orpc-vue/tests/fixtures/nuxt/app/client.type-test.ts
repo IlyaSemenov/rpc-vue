@@ -5,6 +5,7 @@ import { type QueryClient, skipToken } from "@tanstack/vue-query"
 import { catchORPCError, createORPCVueContext } from "orpc-vue"
 import { defineNuxtPlugin } from "orpc-vue/nuxt"
 import { reactive, ref } from "vue"
+
 import type { router } from "~~/server/orpc/router"
 
 /** Verify helper options at the package boundary without executing a Nuxt plugin. */
@@ -65,7 +66,7 @@ export function checkClientTypes() {
   // @ts-expect-error Raw cache data has a fixed shape.
   query.data.value = "wrong"
   const selected = orpc.hello.useQuery(undefined, {
-    select: (data) => data.name,
+    select: data => data.name,
   })
   // @ts-expect-error Selected results remain readonly across the package boundary.
   selected.data.value = "wrong"
@@ -110,7 +111,7 @@ export async function checkNestedClientTypes() {
   // @ts-expect-error Mutable clone fields keep their inferred types.
   clone.data.value!.details.title = 123
   const selected = await orpc.blog.posts.get.useQuery(input, {
-    select: (post) => {
+    select: post => {
       post.id satisfies number
       // @ts-expect-error Nested select callbacks receive the inferred response.
       void post.missing
@@ -123,7 +124,7 @@ export async function checkNestedClientTypes() {
   // @ts-expect-error Selected values cannot be replaced.
   selected.data.value = { title: "wrong" }
   // @ts-expect-error clone and select remain mutually exclusive after declaration emission.
-  orpc.blog.posts.get.useQuery(input, { clone: true, select: (post) => post.id })
+  orpc.blog.posts.get.useQuery(input, { clone: true, select: post => post.id })
 
   const mutation = injected.blog.posts.update.useMutation({
     onSuccess: (output, variables) => {
@@ -143,7 +144,7 @@ export async function checkNestedClientTypes() {
   const handled = await catchORPCError(
     injected.blog.posts.update.call({ id: 1, title: "updated" }),
     {
-      CONFLICT: (error) => {
+      CONFLICT: error => {
         error.code satisfies "CONFLICT"
         error.data.field satisfies string
         return 409 as const

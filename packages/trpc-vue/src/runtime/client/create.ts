@@ -6,6 +6,7 @@ import { getUntypedClient, type TRPCClient } from "@trpc/client"
 import type { AnyTRPCRouter } from "@trpc/server"
 
 import type { TRPCVueQueryClient, TRPCVueQueryOptions } from "../types"
+
 import { decorateClient } from "./decorate"
 import { createProcedureUtils } from "./utils"
 

@@ -1,4 +1,4 @@
-import { QueryClient, skipToken, useQuery, useInfiniteQuery } from "@tanstack/vue-query"
+import { QueryClient, skipToken, useInfiniteQuery, useQuery } from "@tanstack/vue-query"
 import { createTRPCClient, httpBatchLink } from "@trpc/client"
 import { initTRPC } from "@trpc/server"
 import superjson from "superjson"
@@ -70,17 +70,17 @@ trpc.stream.queryOptions()
 trpc.events.useSubscription()
 // @ts-expect-error Cursor-free procedures have no infinite builder.
 trpc.blog.get.infiniteQueryOptions({ id: 1 })
-const selected = trpc.blog.get.useQuery(input, { select: (data) => data.title })
+const selected = trpc.blog.get.useQuery(input, { select: data => data.title })
 expectTypeOf(selected.data.value).toEqualTypeOf<string | undefined>()
 const selectedDefault = trpc.blog.get.useQuery(input, {
-  select: (data) => data.title,
+  select: data => data.title,
   default: () => "Loading",
 })
 expectTypeOf(selectedDefault.data.value).toEqualTypeOf<string>()
 // @ts-expect-error Selected data is readonly.
 selected.data.value = "bad"
 // @ts-expect-error Clone and select are mutually exclusive.
-trpc.blog.get.useQuery(input, { clone: true, select: (data) => data.title })
+trpc.blog.get.useQuery(input, { clone: true, select: data => data.title })
 const clone = trpc.blog.get.useQuery(input, { clone: true })
 if (clone.data.value) clone.data.value.details.label = "draft"
 const defaultClone = trpc.blog.get.useQuery(input, {
@@ -100,7 +100,7 @@ useQuery(client.blog.get.queryOptions(skipToken))
 useInfiniteQuery(
   client.blog.pages.infiniteQueryOptions(
     { group: "news" },
-    { initialCursor: 0, getNextPageParam: (page) => page.next },
+    { initialCursor: 0, getNextPageParam: page => page.next },
   ),
 )
 client.blog.pages.infiniteQueryOptions(
@@ -108,7 +108,7 @@ client.blog.pages.infiniteQueryOptions(
   {
     // @ts-expect-error Page parameters must match the procedure cursor.
     initialCursor: "bad",
-    getNextPageParam: (page) => page.next,
+    getNextPageParam: page => page.next,
   },
 )
 const t = initTRPC.create({ transformer: superjson })

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 import { defineBrowserTests } from "@rpc-vue/core/test-utils/browser-tests"
 
-defineBrowserTests("/orpc/", (path) => [path.replaceAll("/", ".")])
+defineBrowserTests("/orpc/", path => [path.replaceAll("/", ".")])
 
 test("reports through the client plugin in the browser but never during SSR", async ({
   page,
@@ -20,7 +20,7 @@ test("reports through the client plugin in the browser but never during SSR", as
 
 test("hydrates a caught declared error as successful data", async ({ page }) => {
   const requests: string[] = []
-  page.on("request", (request) => {
+  page.on("request", request => {
     if (new URL(request.url()).pathname.includes("blog/posts/update")) {
       requests.push(request.url())
     }

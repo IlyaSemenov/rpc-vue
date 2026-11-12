@@ -17,9 +17,9 @@ async function invalidateRestored() {
     orpc.blog.posts.get.queryKey({ input: { id: 2 } }),
   ]
   await Promise.all(
-    keys.map((queryKey) => cache.invalidateQueries({ queryKey, exact: true, refetchType: "none" })),
+    keys.map(queryKey => cache.invalidateQueries({ queryKey, exact: true, refetchType: "none" })),
   )
-  restoredInvalidated.value = keys.every((key) => cache.getQueryState(key)?.isInvalidated)
+  restoredInvalidated.value = keys.every(key => cache.getQueryState(key)?.isInvalidated)
 }
 const ready = ref(false)
 onMounted(() => {

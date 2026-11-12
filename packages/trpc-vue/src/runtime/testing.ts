@@ -75,7 +75,7 @@ export function createTestTRPCClient<TRouter extends AnyTRPCRouter>(
   const link: TRPCLink<TRouter> =
     () =>
     ({ op }) =>
-      observable((observer) => {
+      observable(observer => {
         Promise.resolve()
           .then(async () => {
             if (op.type === "subscription") {
@@ -84,7 +84,7 @@ export function createTestTRPCClient<TRouter extends AnyTRPCRouter>(
             observer.next({ result: { data: await registry.call(op.path, op.input) } })
             observer.complete()
           })
-          .catch((error) => observer.error(TRPCClientError.from<TRouter>(error)))
+          .catch(error => observer.error(TRPCClientError.from<TRouter>(error)))
       })
   return {
     client: createTRPCVueQuery(createTRPCClient<TRouter>({ links: [link] }), {

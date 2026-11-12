@@ -71,7 +71,7 @@ describe("createTestORPCClient()", () => {
 
     await expect(
       catchORPCError(client.blog.posts.update.call({ id: 1, title: "Duplicate" }), {
-        CONFLICT: (error) => error.data.field,
+        CONFLICT: error => error.data.field,
       }),
     ).resolves.toBe("title")
     expect(update.mock.calls).toEqual([[{ id: 1, title: "Duplicate" }]])
@@ -81,7 +81,7 @@ describe("createTestORPCClient()", () => {
     const errors: unknown[] = []
     const { client, procedures } = createTestORPCClient<AppClient>({
       interceptors: [
-        onError((error) => {
+        onError(error => {
           errors.push(error)
         }),
       ],
@@ -110,7 +110,7 @@ describe("createTestORPCClient()", () => {
       ],
     })
     procedures.blog.posts.list.handle(() => [])
-    procedures.blog.posts.update.handle((input) => ({ ...input }))
+    procedures.blog.posts.update.handle(input => ({ ...input }))
     const scope = effectScope()
 
     try {

@@ -1,5 +1,6 @@
 import type { RouterClient } from "@orpc/server"
 import { defineNuxtPlugin } from "orpc-vue/nuxt"
+
 import type { router } from "~~/server/orpc/router"
 
 /** Send SSR and browser requests to separate transports and forward only the listed headers. */

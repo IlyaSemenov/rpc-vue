@@ -10,7 +10,7 @@ export function defineBrowserTests(endpoint: string, parseProcedures: (path: str
   /** Record the procedures the browser requests from the RPC handler. */
   function recordProcedures(page: Page) {
     const procedures: string[] = []
-    page.on("request", (request) => {
+    page.on("request", request => {
       const { pathname } = new URL(request.url())
       if (pathname.startsWith(endpoint)) {
         procedures.push(...parseProcedures(pathname.slice(endpoint.length)))
@@ -34,8 +34,8 @@ export function defineBrowserTests(endpoint: string, parseProcedures: (path: str
         headers: { "x-viewer": "reader-grace", cookie: "session=grace" },
       }),
     ])
-    const html = await Promise.all(responses.map((response) => response.text()))
-    expect(responses.every((response) => response.ok())).toBe(true)
+    const html = await Promise.all(responses.map(response => response.text()))
+    expect(responses.every(response => response.ok())).toBe(true)
     expect(html[0]).toContain('<p id="viewer">reader-ada</p>')
     expect(html[0]).not.toContain("reader-grace")
     expect(html[1]).toContain('<p id="viewer">reader-grace</p>')
@@ -83,7 +83,7 @@ export function defineBrowserTests(endpoint: string, parseProcedures: (path: str
     page,
   }) => {
     const errors: string[] = []
-    page.on("pageerror", (error) => errors.push(error.message))
+    page.on("pageerror", error => errors.push(error.message))
     await page.goto("/invalidation")
     await page.waitForLoadState("networkidle")
     await expect(page.locator("#invalidated")).toHaveText("false")
@@ -97,8 +97,8 @@ export function defineBrowserTests(endpoint: string, parseProcedures: (path: str
   }) => {
     const errors: string[] = []
     const procedures = recordProcedures(page)
-    page.on("pageerror", (error) => errors.push(error.message))
-    page.on("console", (message) => {
+    page.on("pageerror", error => errors.push(error.message))
+    page.on("console", message => {
       if (message.type() === "warning" || message.type() === "error") errors.push(message.text())
     })
     await page.setExtraHTTPHeaders({ "x-viewer": "browser" })
@@ -124,7 +124,7 @@ export function defineBrowserTests(endpoint: string, parseProcedures: (path: str
   test("reactive input, enabled, namespace invalidation and configured retry work in the browser", async ({
     page,
   }) => {
-    await page.addInitScript((endpoint) => {
+    await page.addInitScript(endpoint => {
       const state = window as typeof window & { rpcCredentials: (RequestCredentials | undefined)[] }
       state.rpcCredentials = []
       // Preserve fetch's full API, including the extra properties in Bun's ambient types.
@@ -137,7 +137,7 @@ export function defineBrowserTests(endpoint: string, parseProcedures: (path: str
       })
     }, endpoint)
     const procedures = recordProcedures(page)
-    const count = (procedure: string) => procedures.filter((name) => name === procedure).length
+    const count = (procedure: string) => procedures.filter(name => name === procedure).length
     await page.goto("/")
     await expect(page.locator("#hydrated")).toHaveText("true")
     await expect(page.locator("#post")).toBeEmpty()
@@ -161,6 +161,6 @@ export function defineBrowserTests(endpoint: string, parseProcedures: (path: str
       return state.rpcCredentials
     })
     expect(credentials.length).toBeGreaterThan(0)
-    expect(credentials.every((value) => value === "include")).toBe(true)
+    expect(credentials.every(value => value === "include")).toBe(true)
   })
 }

@@ -1,6 +1,7 @@
 import { mockNuxtImport } from "@nuxt/test-utils/runtime"
 import { createTestTRPCClient } from "trpc-vue/testing"
 import { afterEach } from "vitest"
+
 import type { AppRouter } from "~~/server/trpc/router"
 
 export const { client, procedures, reset } = createTestTRPCClient<AppRouter>()

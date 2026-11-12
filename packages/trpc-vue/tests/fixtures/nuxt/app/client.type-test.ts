@@ -4,6 +4,7 @@ import superjson from "superjson"
 import { createTRPCVueContext } from "trpc-vue"
 import { defineNuxtPlugin } from "trpc-vue/nuxt"
 import { reactive, ref } from "vue"
+
 import type { AppRouter } from "~~/server/trpc/router"
 
 /** Verify helper options at the package boundary without executing a Nuxt plugin. */
@@ -64,7 +65,7 @@ export function checkClientTypes() {
   // @ts-expect-error Raw cache data has a fixed shape.
   query.data.value = "wrong"
   const selected = trpc.hello.useQuery(undefined, {
-    select: (data) => data.name,
+    select: data => data.name,
   })
   // @ts-expect-error Selected results remain readonly across the package boundary.
   selected.data.value = "wrong"
@@ -110,7 +111,7 @@ export async function checkNestedClientTypes() {
   // @ts-expect-error Mutable clone fields keep their inferred types.
   clone.data.value!.details.title = 123
   const selected = await trpc.blog.posts.get.useQuery(input, {
-    select: (post) => {
+    select: post => {
       post.id satisfies number
       // @ts-expect-error Nested select callbacks receive the inferred response.
       void post.missing
@@ -123,7 +124,7 @@ export async function checkNestedClientTypes() {
   // @ts-expect-error Selected values cannot be replaced.
   selected.data.value = { title: "wrong" }
   // @ts-expect-error clone and select remain mutually exclusive after declaration emission.
-  trpc.blog.posts.get.useQuery(input, { clone: true, select: (post) => post.id })
+  trpc.blog.posts.get.useQuery(input, { clone: true, select: post => post.id })
 
   const mutation = injected.blog.posts.update.useMutation({
     onSuccess: (output, variables) => {

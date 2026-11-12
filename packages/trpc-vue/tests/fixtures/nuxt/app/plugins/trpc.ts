@@ -1,5 +1,6 @@
 import superjson from "superjson"
 import { defineNuxtPlugin } from "trpc-vue/nuxt"
+
 import type { AppRouter } from "~~/server/trpc/router"
 
 /** Send SSR and browser requests to separate transports and forward only the listed headers. */

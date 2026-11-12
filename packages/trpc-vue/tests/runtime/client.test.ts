@@ -35,14 +35,14 @@ describe("query and mutation client", () => {
     for (const key of keys) queryClient.setQueryData(key, "cached")
 
     await trpc.blog.get.invalidate()
-    expect(keys.map((key) => queryClient.getQueryState(key)?.isInvalidated)).toEqual([
+    expect(keys.map(key => queryClient.getQueryState(key)?.isInvalidated)).toEqual([
       true,
       true,
       false,
       false,
     ])
     await trpc.blog.invalidate()
-    expect(keys.map((key) => queryClient.getQueryState(key)?.isInvalidated)).toEqual([
+    expect(keys.map(key => queryClient.getQueryState(key)?.isInvalidated)).toEqual([
       true,
       true,
       true,
@@ -164,8 +164,8 @@ describe("query and mutation client", () => {
           { group: "news" },
           {
             initialCursor: 3,
-            getNextPageParam: (page) => page.next,
-            getPreviousPageParam: (page) => (page.cursor ?? 0) - 1,
+            getNextPageParam: page => page.next,
+            getPreviousPageParam: page => (page.cursor ?? 0) - 1,
           },
         ),
         queryClient,
@@ -173,7 +173,7 @@ describe("query and mutation client", () => {
     )!
     await pages.fetchNextPage()
     await pages.fetchNextPage()
-    expect(pages.data.value?.pages.map((page) => page.cursor)).toEqual([3, 4])
+    expect(pages.data.value?.pages.map(page => page.cursor)).toEqual([3, 4])
     await pages.fetchPreviousPage()
     expect(pages.data.value?.pages[0]).toMatchObject({ cursor: 2, direction: "backward" })
     scope.stop()

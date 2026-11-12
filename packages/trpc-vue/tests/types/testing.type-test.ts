@@ -18,14 +18,14 @@ const router = t.router({
 
 const { client, procedures } = createTestTRPCClient<typeof router>()
 
-procedures.admin.posts.get.handle(async (input) => {
+procedures.admin.posts.get.handle(async input => {
   input.id satisfies number
   // @ts-expect-error The handler input retains the procedure input type.
   input.id satisfies string
   return { id: input.id, title: "Post", date: "2026-01-01T00:00:00.000Z" }
 })
 procedures.admin.posts.get.handle(() => ({ id: 1, title: "Post", date: "" }), {
-  copyInput: (input) => {
+  copyInput: input => {
     input.id satisfies number
     // @ts-expect-error The copy receives the procedure input type.
     input.id satisfies string
@@ -34,7 +34,7 @@ procedures.admin.posts.get.handle(() => ({ id: 1, title: "Post", date: "" }), {
 })
 procedures.admin.posts.get.handle(() => ({ id: 1, title: "Post", date: "" }), {
   // @ts-expect-error The copy must return the procedure input type.
-  copyInput: (input) => ({ id: String(input.id) }),
+  copyInput: input => ({ id: String(input.id) }),
 })
 procedures.admin.posts.get.handle(() => ({ id: 1, title: "Post", date: "" }), { copyInput: false })
 // @ts-expect-error Handlers return client output, where JSON transport turns dates into strings.

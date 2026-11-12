@@ -105,14 +105,14 @@ describe("query and mutation client", () => {
     for (const key of keys) queryClient.setQueryData(key, "cached")
 
     await orpc.item.get.invalidate()
-    expect(keys.map((key) => queryClient.getQueryState(key)?.isInvalidated)).toEqual([
+    expect(keys.map(key => queryClient.getQueryState(key)?.isInvalidated)).toEqual([
       true,
       true,
       false,
       false,
     ])
     await orpc.item.invalidate()
-    expect(keys.map((key) => queryClient.getQueryState(key)?.isInvalidated)).toEqual([
+    expect(keys.map(key => queryClient.getQueryState(key)?.isInvalidated)).toEqual([
       true,
       true,
       true,
@@ -226,7 +226,7 @@ describe("callCatching", () => {
     const { orpc } = setup()
     expect(await orpc.find.callCatching({ id: 1 }, {})).toEqual({ id: 1 })
     expect(await orpc.missing.callCatching(undefined, { NOT_FOUND: null })).toBeNull()
-    expect(await orpc.missing.callCatching(undefined, { NOT_FOUND: (error) => error.code })).toBe(
+    expect(await orpc.missing.callCatching(undefined, { NOT_FOUND: error => error.code })).toBe(
       "NOT_FOUND",
     )
   })

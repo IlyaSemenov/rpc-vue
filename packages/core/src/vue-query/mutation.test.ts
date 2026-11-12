@@ -13,7 +13,7 @@ test("mutations resolve reactive options and preserve input, output and callback
   try {
     const mutation = scope.run(() =>
       useReactiveMutation(
-        (settings) => ({
+        settings => ({
           ...settings,
           mutationFn: async (input: unknown) => ({ saved: (input as { title: string }).title }),
         }),
@@ -37,7 +37,7 @@ test("mutations resolve reactive options and preserve input, output and callback
 })
 
 test("requires a component setup or an active effect scope", () => {
-  expect(() => useReactiveMutation((settings) => settings, undefined, new QueryClient())).toThrow(
+  expect(() => useReactiveMutation(settings => settings, undefined, new QueryClient())).toThrow(
     "active Vue effect scope",
   )
 })

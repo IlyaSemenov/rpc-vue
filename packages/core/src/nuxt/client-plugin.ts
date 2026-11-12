@@ -73,7 +73,7 @@ export function defineClientPlugin<
     queryClient: QueryClient,
   ) => TInjections,
 ): Plugin<TInjections> {
-  return defineNuxtPlugin((nuxtApp) => {
+  return defineNuxtPlugin(nuxtApp => {
     const options = setup(nuxtApp)
     const queryClient = options.queryClient ?? resolveQueryClient(nuxtApp.vueApp)
     if (!queryClient) {

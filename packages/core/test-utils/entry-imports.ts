@@ -29,10 +29,10 @@ export async function findNuxtRuntimeImport(
 
     const source = await readFile(file, "utf8")
     const imports = [...source.matchAll(/(?:from\s*|import\s*(?:\(\s*)?)["']([^"']+)["']/g)].map(
-      (match) => match[1]!,
+      match => match[1]!,
     )
     const specifier = imports.find(
-      (specifier) =>
+      specifier =>
         specifier === "nuxt/app" ||
         specifier.startsWith("nuxt/app/") ||
         specifier.startsWith("#app") ||

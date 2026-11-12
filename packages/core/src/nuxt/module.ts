@@ -39,7 +39,7 @@ export function defineRpcNuxtModule({ name, configKey, composables, moduleUrl }:
       optimizeDeps.exclude ??= []
       optimizeDeps.exclude.push(name, "@tanstack/vue-query")
       const runtime = resolver.resolve("./runtime/nuxt/runtime")
-      addImports(composables.map((composable) => ({ name: composable, from: runtime })))
+      addImports(composables.map(composable => ({ name: composable, from: runtime })))
       if (options.queryClient) {
         const config = options.queryClient === true ? {} : options.queryClient
         addPluginTemplate({

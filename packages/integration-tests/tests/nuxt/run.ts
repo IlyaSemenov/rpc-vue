@@ -10,7 +10,7 @@ const trpcVersion = pkg.devDependencies["@trpc/server"]
 
 await checkConsumers({
   packageRoot: resolve(import.meta.dir, "../.."),
-  adapterRoots: ["orpc-vue", "trpc-vue"].map((name) =>
+  adapterRoots: ["orpc-vue", "trpc-vue"].map(name =>
     dirname(fileURLToPath(import.meta.resolve(`${name}/package.json`))),
   ),
   owners: ["orpc", "trpc", "application"],

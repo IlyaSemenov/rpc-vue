@@ -1,4 +1,4 @@
-import { type DataTag, skipToken, type QueryKey } from "@tanstack/vue-query"
+import { type DataTag, type QueryKey, skipToken } from "@tanstack/vue-query"
 import { cloneDeep } from "es-toolkit"
 import { isRef } from "vue"
 
@@ -18,7 +18,7 @@ export function createQueryKey(
       "tRPC key and options builders require resolved input. Use a value inside computed(), or pass reactive input to useQuery().",
     )
   }
-  const parts = path.flatMap((part) => part.split("."))
+  const parts = path.flatMap(part => part.split("."))
   const namespace = prefix ? [[prefix]] : []
   if (!input && type === "any") return [...namespace, ...(parts.length ? [parts] : [])]
   if (
@@ -42,5 +42,5 @@ export function createQueryKey(
 
 /** Mutation keys have a path and optional namespace, without query arguments. */
 export function createMutationKey(path: string[], prefix?: string): QueryKey {
-  return [...(prefix ? [[prefix]] : []), path.flatMap((part) => part.split("."))]
+  return [...(prefix ? [[prefix]] : []), path.flatMap(part => part.split("."))]
 }

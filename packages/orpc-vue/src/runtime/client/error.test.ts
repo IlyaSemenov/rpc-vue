@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
-import { type PromiseWithError, ORPCError } from "@orpc/client"
+import { ORPCError, type PromiseWithError } from "@orpc/client"
 
 import { catchORPCError } from "./error"
 
@@ -50,7 +50,7 @@ describe("catchORPCError", () => {
 
     await expect(
       catchORPCError(failure(error), {
-        CONFLICT: async (caught) => `${caught.data.field} conflict`,
+        CONFLICT: async caught => `${caught.data.field} conflict`,
       }),
     ).resolves.toBe("title conflict")
   })

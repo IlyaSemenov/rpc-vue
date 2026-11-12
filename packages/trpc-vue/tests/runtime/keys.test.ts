@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 
-import { skipToken, type QueryKey } from "@tanstack/vue-query"
+import { type QueryKey, skipToken } from "@tanstack/vue-query"
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query"
 import { createTRPCVueQuery } from "trpc-vue"
 import { reactive, ref } from "vue"
@@ -31,12 +31,12 @@ test("key shapes match the pinned upstream reference, including partial and infi
     expect(
       trpc.blog.pages.infiniteQueryOptions(
         { group: "news" },
-        { initialCursor: 0, getNextPageParam: (p) => p.next },
+        { initialCursor: 0, getNextPageParam: p => p.next },
       ).initialPageParam,
     ).toBe(
       reference.blog.pages.infiniteQueryOptions(
         { group: "news" },
-        { initialCursor: 0, getNextPageParam: (p) => p.next },
+        { initialCursor: 0, getNextPageParam: p => p.next },
       ).initialPageParam,
     )
     const noPrefix = createTRPCVueQuery<typeof router>(raw)

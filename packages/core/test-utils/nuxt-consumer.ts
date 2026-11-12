@@ -60,7 +60,7 @@ export async function checkConsumers(options: {
 }) {
   const { packageRoot, adapterRoots, fixtures = [], dependencies, afterCheck } = options
   const args = process.argv.slice(2)
-  const versions = args.filter((arg) => !arg.startsWith("--"))
+  const versions = args.filter(arg => !arg.startsWith("--"))
   if (!versions.length) versions.push(nuxtPkg.version)
   const tooling = await readPackage<ToolingPackage>(packageRoot)
   const adapters = await Promise.all(adapterRoots.map(readPackage<AdapterPackage>))
@@ -165,15 +165,15 @@ async function createConsumer(
     await cp(fixture, app, {
       recursive: true,
       // Match inside the fixture only: the same names can appear in the directories above it.
-      filter: (path) =>
+      filter: path =>
         !relative(fixture, path)
           .split(/[\\/]/)
-          .some((part) => excludedFromConsumer.has(part)),
+          .some(part => excludedFromConsumer.has(part)),
     })
   }
   // Leave optional peers to the consumer's chosen Nuxt version; an explicit kit range could install a different major.
   const requiredPeers = Object.fromEntries(
-    adapters.flatMap((pkg) =>
+    adapters.flatMap(pkg =>
       Object.entries(pkg.peerDependencies).filter(
         ([name]) => !pkg.peerDependenciesMeta[name]?.optional,
       ),
@@ -219,7 +219,7 @@ async function checkBrowser(
   console.log(`Checking ${mode} server`)
   const { server, url } = await startServer(app, env, mode, "inherit")
   try {
-    await waitForResponse(server, url, (response) => response.ok)
+    await waitForResponse(server, url, response => response.ok)
     // The shared Playwright configuration reads the server address from RPC_TEST_URL.
     await run(["bun", "run", "playwright", "test"], packageRoot, { ...env, RPC_TEST_URL: url })
   } finally {
@@ -269,11 +269,11 @@ async function waitForResponse(
 /** Ask the OS for an available port so local apps do not need to be stopped for the test. */
 async function unusedPort(): Promise<number> {
   const server = createServer()
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve))
+  await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve))
   const address = server.address()
   if (!address || typeof address === "string") throw new Error("No TCP port assigned")
   await new Promise<void>((resolve, reject) =>
-    server.close((error) => (error ? reject(error) : resolve())),
+    server.close(error => (error ? reject(error) : resolve())),
   )
   return address.port
 }

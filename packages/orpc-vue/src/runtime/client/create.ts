@@ -6,6 +6,7 @@ import { captureQueryClient } from "@rpc-vue/core/vue-query/query-client"
 import type { QueryKey } from "@tanstack/vue-query"
 
 import type { ORPCUnexpectedErrorContext, ORPCVueQueryClient, ORPCVueQueryOptions } from "../types"
+
 import { decorateClient } from "./decorate"
 import { catchDefinedErrors, isDefinedORPCError } from "./error"
 import { hashORPCKey } from "./hash"
@@ -77,11 +78,11 @@ export function createORPCVueQuery<TClient extends AnyNestedClient>(
             return built
           },
           queryClient: observedQueryClient(),
-          shouldRetryError: (error) => !isDefinedORPCError(error),
+          shouldRetryError: error => !isDefinedORPCError(error),
         }),
       useMutation: (settings: unknown) =>
         useReactiveMutation(
-          (settings) => {
+          settings => {
             const built = mutationOptions(settings)
             reporter?.trackMutation(built, path)
             return built

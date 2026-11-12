@@ -10,7 +10,7 @@ test("reads the client provided to each Vue app without sharing it across SSR re
   const clients = [{ name: "first" }, { name: "second" }]
 
   await Promise.all(
-    clients.map(async (client) => {
+    clients.map(async client => {
       const app = createSSRApp({
         setup() {
           expect(context.useRpc()).toBe(client)

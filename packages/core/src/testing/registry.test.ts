@@ -93,7 +93,7 @@ describe("test registry", () => {
     test("passes the handler and its mock one copy taken at call time", async () => {
       const { procedures, call } = setup(undefined, copyInput)
       let received: unknown
-      const list = procedures.blog.posts.list.handle((input) => (received = input)) as Mock
+      const list = procedures.blog.posts.list.handle(input => (received = input)) as Mock
       const fields = reactive({ title: "Post" })
 
       await call("blog.posts.list", fields)
@@ -105,8 +105,8 @@ describe("test registry", () => {
 
     test("a registration's copyInput replaces the client's", async () => {
       const { procedures, call } = setup(undefined, copyInput)
-      const list = procedures.blog.posts.list.handle((input) => input, {
-        copyInput: (input) => input,
+      const list = procedures.blog.posts.list.handle(input => input, {
+        copyInput: input => input,
       }) as Mock
       const fields = reactive({ title: "Post" })
 
@@ -119,7 +119,7 @@ describe("test registry", () => {
 
     test("a registration's false turns off the client's copyInput", async () => {
       const { procedures, call } = setup(undefined, copyInput)
-      const list = procedures.blog.posts.list.handle((input) => input, {
+      const list = procedures.blog.posts.list.handle(input => input, {
         copyInput: false,
       }) as Mock
       const fields = reactive({ title: "Post" })

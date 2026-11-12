@@ -2,21 +2,21 @@ import { mountSuspended } from "@nuxt/test-utils/runtime"
 import type { RouterClient } from "@orpc/server"
 import type { TestORPCHandler } from "orpc-vue/testing"
 import { expect, test, vi } from "vitest"
-import type { router } from "~~/server/orpc/router"
 
 import AwaitedError from "~/components/awaited-error.vue"
 import DeclaredError from "~/components/declared-error.vue"
 import PostList from "~/components/post-list.vue"
+import type { router } from "~~/server/orpc/router"
 
 import { client, onUnexpectedError, procedures } from "./setup"
 
 test("queries, mutates and invalidates through the test client", async () => {
   let title = "First post"
   const list = procedures.blog.posts.list.handle(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 10))
+    await new Promise(resolve => setTimeout(resolve, 10))
     return [{ id: 1, title }]
   })
-  const update = procedures.blog.posts.update.handle((input) => {
+  const update = procedures.blog.posts.update.handle(input => {
     title = input.title
     return { id: input.id, details: { title } }
   })
@@ -74,11 +74,11 @@ test("reports an unexpected setup error through the test client's hook", async (
 export function checkTestClientTypes() {
   const query = client.blog.posts.list.useQuery(undefined, { default: () => [] })
   query.data.value[0]?.title satisfies string | undefined
-  procedures.blog.posts.get.handle(async (input) => {
+  procedures.blog.posts.get.handle(async input => {
     input.id satisfies number
     return { id: input.id, details: { title: "Post" } }
   })
-  procedures.blog.posts.get.handle((input) => ({
+  procedures.blog.posts.get.handle(input => ({
     // @ts-expect-error The response ID must remain a number in built declarations.
     id: String(input.id),
     details: { title: "Post" },

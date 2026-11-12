@@ -5,9 +5,6 @@ import { findNuxtRuntimeImport } from "@rpc-vue/core/test-utils/entry-imports"
 
 const packageRoot = fileURLToPath(new URL("../..", import.meta.url))
 
-test.each(["client", "testing"])(
-  "keeps the %s entry free of Nuxt runtime imports",
-  async (entry) => {
-    expect(await findNuxtRuntimeImport(packageRoot, "orpc-vue", entry)).toBeUndefined()
-  },
-)
+test.each(["client", "testing"])("keeps the %s entry free of Nuxt runtime imports", async entry => {
+  expect(await findNuxtRuntimeImport(packageRoot, "orpc-vue", entry)).toBeUndefined()
+})

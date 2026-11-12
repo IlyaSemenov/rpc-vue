@@ -14,7 +14,7 @@ const failure = rpc.blog.posts.fail.useQuery(undefined, { enabled: false })
 const { data: manualUser } = useManualRpc().blog.users.get.useQuery()
 // Both observers share one cache entry; editing the clone must leave the selected name intact.
 const query = await rpc.hello.useQuery(undefined, { clone: true })
-const selected = rpc.hello.useQuery(undefined, { select: (data) => data.name })
+const selected = rpc.hello.useQuery(undefined, { select: data => data.name })
 // Awaiting an inactive query must not block SSR or component setup.
 const clientOnly = await rpc.hello.useQuery(undefined, {
   server: false,

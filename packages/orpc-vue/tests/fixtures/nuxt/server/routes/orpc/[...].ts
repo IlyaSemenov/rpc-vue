@@ -1,11 +1,12 @@
 import { RPCHandler } from "@orpc/server/fetch"
 import { defineEventHandler, getHeader, getQuery, toWebRequest } from "h3"
+
 import { router } from "~~/server/orpc/router"
 
 // Share the transport handler, but supply viewer context separately for each request.
 const handler = new RPCHandler(router)
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const { response } = await handler.handle(toWebRequest(event), {
     prefix: "/orpc",
     context: {

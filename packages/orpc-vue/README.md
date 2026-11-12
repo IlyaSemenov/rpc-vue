@@ -209,7 +209,7 @@ Use `.callCatching()` to call a procedure and handle errors it declares with `.e
 
 ```ts
 const post = await orpc.blog.posts.update.callCatching(input, {
-  CONFLICT: (error) => {
+  CONFLICT: error => {
     message.value = error.message
     conflictingField.value = error.data.field
   },
@@ -257,7 +257,7 @@ import type { router } from "~~/server/rpc/router"
 type Client = RouterClient<typeof router>
 type ClientError = InferClientError<Client>
 
-export default defineNuxtPlugin<Client>((nuxtApp) => ({
+export default defineNuxtPlugin<Client>(nuxtApp => ({
   url: "/rpc",
   interceptors: [
     onError(async (error: ClientError) => {

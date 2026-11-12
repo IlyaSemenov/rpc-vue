@@ -5,6 +5,7 @@ import {
 } from "@rpc-vue/core/nuxt/query-config"
 
 import { hashORPCKey } from "../client/hash"
+
 // Include the Nuxt hook augmentation without adding a runtime import.
 import type {} from "./hooks"
 

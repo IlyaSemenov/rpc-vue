@@ -7,6 +7,7 @@ import {
 } from "@tanstack/vue-query"
 
 import type { ORPCUnexpectedErrorContext, ORPCUnexpectedErrorHandler } from "../types"
+
 import { isDefinedORPCError } from "./error"
 
 /**
@@ -50,13 +51,13 @@ export function createUnexpectedErrorReporter(handler: ORPCUnexpectedErrorHandle
     observe(client: QueryClient) {
       if (environmentManager.isServer() || observed.has(client)) return
       observed.add(client)
-      client.getQueryCache().subscribe((event) => {
+      client.getQueryCache().subscribe(event => {
         if (event.type !== "updated" || event.action.type !== "error") return
         const fn = event.query.options.queryFn
         const context = typeof fn === "function" ? queries.get(fn) : undefined
         if (context) report(event.action.error, context)
       })
-      client.getMutationCache().subscribe((event) => {
+      client.getMutationCache().subscribe(event => {
         if (event.type !== "updated" || event.action.type !== "error") return
         const fn = event.mutation.options.mutationFn
         const path = fn && mutations.get(fn)

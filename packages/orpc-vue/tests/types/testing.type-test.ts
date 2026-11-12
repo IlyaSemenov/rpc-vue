@@ -70,7 +70,7 @@ procedures.admin.posts.get.handle(async (input, { errors }) => {
   return { id: input.id, title: "Post" }
 })
 procedures.admin.posts.get.handle(() => ({ id: 1, title: "Post" }), {
-  copyInput: (input) => {
+  copyInput: input => {
     input.id satisfies number
     // @ts-expect-error The copy receives the procedure input type.
     input.id satisfies string
@@ -79,7 +79,7 @@ procedures.admin.posts.get.handle(() => ({ id: 1, title: "Post" }), {
 })
 procedures.admin.posts.get.handle(() => ({ id: 1, title: "Post" }), {
   // @ts-expect-error The copy must return the procedure input type.
-  copyInput: (input) => ({ id: String(input.id) }),
+  copyInput: input => ({ id: String(input.id) }),
 })
 procedures.admin.posts.get.handle(() => ({ id: 1, title: "Post" }), { copyInput: false })
 // @ts-expect-error The handler result must match the awaited procedure output.

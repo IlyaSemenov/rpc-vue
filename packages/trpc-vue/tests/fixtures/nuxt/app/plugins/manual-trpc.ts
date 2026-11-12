@@ -1,6 +1,7 @@
 import { createTRPCClient, httpBatchLink } from "@trpc/client"
 import superjson from "superjson"
 import { createTRPCVueQuery } from "trpc-vue"
+
 import type { AppRouter } from "~~/server/trpc/router"
 
 /** Exercise the client entrypoint alongside the helper under Vite dependency optimization. */

@@ -48,7 +48,7 @@ async function definedErrorInference() {
   >
 
   const handled = await catchORPCError(promise, {
-    CONFLICT: (error) => {
+    CONFLICT: error => {
       error.code satisfies "CONFLICT"
       error.data.field satisfies string
       // @ts-expect-error The handler receives only the matching error branch.
@@ -57,7 +57,7 @@ async function definedErrorInference() {
       void error.data.missing
       return 409 as const
     },
-    NOT_FOUND: async (error) => {
+    NOT_FOUND: async error => {
       error.code satisfies "NOT_FOUND"
       return "redirect" as const
     },
@@ -94,7 +94,7 @@ async function callCatchingInference() {
   const handled = await orpc.update.callCatching(
     { id: 1 },
     {
-      CONFLICT: (error) => {
+      CONFLICT: error => {
         error.code satisfies "CONFLICT"
         error.data.field satisfies string
         return 409 as const
@@ -126,7 +126,7 @@ async function callCatchingInference() {
     { id: 1 },
     {
       catching: {
-        CONFLICT: (error) => {
+        CONFLICT: error => {
           error.data.field satisfies string
           return 409 as const
         },
@@ -142,7 +142,7 @@ async function callCatchingInference() {
     { id: 1 },
     {
       catching: { NOT_FOUND: null },
-      select: (data) => (data === null ? "missing" : data.title),
+      select: data => (data === null ? "missing" : data.title),
     },
   )
   expectTypeOf(selected.data.value).toEqualTypeOf<string | undefined>()
@@ -280,12 +280,12 @@ async function inference() {
     },
   )
   defaultClone.data.value.author.name = "local"
-  const selected = await orpc.get.useQuery({ id: 1 }, { select: (value) => value.author })
+  const selected = await orpc.get.useQuery({ id: 1 }, { select: value => value.author })
   const name: string | undefined = selected.data.value?.name
   const selectedDefault = orpc.get.useQuery(
     { id: 1 },
     {
-      select: (value) => value.author,
+      select: value => value.author,
       default: () => ({ name: "Loading" }),
     },
   )
@@ -295,7 +295,7 @@ async function inference() {
   // @ts-expect-error Selected objects are deeply readonly.
   selected.data.value!.name = "wrong"
   // @ts-expect-error A clone cannot be combined with select.
-  orpc.get.useQuery({ id: 1 }, { clone: true, select: (value) => value.id })
+  orpc.get.useQuery({ id: 1 }, { clone: true, select: value => value.id })
   // @ts-expect-error Required input cannot be omitted.
   orpc.get.useQuery()
   // @ts-expect-error Invalid input.
@@ -305,7 +305,7 @@ async function inference() {
   const ping = await orpc.ping.useQuery()
   const pong: string | undefined = ping.data.value
   const mutation = orpc.get.useMutation({
-    onSuccess: (output) => {
+    onSuccess: output => {
       output.id satisfies number
     },
   })
@@ -352,7 +352,7 @@ async function nestedInference() {
   // @ts-expect-error A mutable clone still preserves its response type.
   clone.data.value!.author.name = 123
   const selected = await orpc.blog.posts.get.useQuery(input, {
-    select: (post) => {
+    select: post => {
       post.id satisfies number
       // @ts-expect-error The select callback receives the actual procedure output.
       void post.missing
@@ -365,7 +365,7 @@ async function nestedInference() {
   // @ts-expect-error Selection cannot be assigned into the underlying response cache.
   selected.data.value = { name: "wrong" }
   // @ts-expect-error clone and select remain mutually exclusive at nested leaves.
-  orpc.blog.posts.get.useQuery(input, { clone: true, select: (post) => post.id })
+  orpc.blog.posts.get.useQuery(input, { clone: true, select: post => post.id })
 
   const mutation = orpc.blog.posts.get.useMutation({
     onSuccess: (output, variables) => {
@@ -463,7 +463,7 @@ function contextInference(raw: {
   // @ts-expect-error Required context also applies to the clone overload.
   orpc.blog.posts.get.useQuery({ id: 1 }, { clone: true })
   // @ts-expect-error Required context also applies to the select overload.
-  orpc.blog.posts.get.useQuery({ id: 1 }, { select: (post) => post.title })
+  orpc.blog.posts.get.useQuery({ id: 1 }, { select: post => post.title })
   orpc.blog.posts.get.useQuery(
     { id: 1 },
     {
@@ -475,14 +475,14 @@ function contextInference(raw: {
     { id: 1 },
     {
       context: { token: "token" },
-      select: (post) => post.title,
+      select: post => post.title,
     },
   )
   // @ts-expect-error Required context cannot be omitted at a nested mutation.
   orpc.blog.posts.get.useMutation()
   orpc.blog.posts.get.useMutation({
     context: { token: "token" },
-    onError: (error) => {
+    onError: error => {
       error.message satisfies string
       // @ts-expect-error Nested mutation errors retain their error type.
       void error.missing

@@ -1,8 +1,8 @@
 import {
+  environmentManager,
   type QueryClient,
   type QueryObserverOptions,
   type SkipToken,
-  environmentManager,
   skipToken,
   useQuery,
   type UseQueryOptions,
@@ -287,7 +287,7 @@ export function useReactiveQuery(
     // A queued reset could overwrite local edits made immediately after a cache assignment.
     flush: "sync",
   })
-  const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+  const unsubscribe = queryClient.getQueryCache().subscribe(event => {
     // Success is significant even when structural sharing preserves data and timestamps coincide.
     if (
       event.type === "updated" &&
@@ -325,7 +325,7 @@ export function useReactiveQuery(
   // Disabled, client-only and offline-paused queries must not block setup or SSR.
   const loaded = query.fetchStatus.value === "fetching" ? query.suspense() : Promise.resolve()
   if (instance) onServerPrefetch(() => loaded)
-  const completion = loaded.then((initial) => {
+  const completion = loaded.then(initial => {
     if (settings.value.rejectOnError !== false && initial?.isError) throw initial.error
     return result
   })

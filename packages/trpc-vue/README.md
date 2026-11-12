@@ -227,7 +227,7 @@ const query = useQuery(computed(() => trpc.blog.posts.get.queryOptions({ id: sel
 const pages = useInfiniteQuery(
   trpc.blog.posts.list.infiniteQueryOptions(
     { category: "news" },
-    { initialCursor: 0, getNextPageParam: (page) => page.nextCursor },
+    { initialCursor: 0, getNextPageParam: page => page.nextCursor },
   ),
 )
 ```
