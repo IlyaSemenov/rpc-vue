@@ -4,5 +4,5 @@
     "types": ["bun"],
     "lib": ["ESNext", "DOM", "DOM.Iterable"]
   },
-  "include": ["src/**/*.ts", "*.ts"]
+  "include": ["src/**/*.ts", "*.ts", "docs/.vitepress/**/*.ts"]
 }

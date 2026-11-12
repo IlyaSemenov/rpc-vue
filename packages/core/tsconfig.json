@@ -4,5 +4,5 @@
     "types": ["bun"],
     "lib": ["ESNext", "DOM", "DOM.Iterable"]
   },
-  "include": ["src/**/*.ts", "build/**/*.ts", "test-utils/**/*.ts"]
+  "include": ["src/**/*.ts", "build/**/*.ts", "docs/**/*.ts", "test-utils/**/*.ts"]
 }

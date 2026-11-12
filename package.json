@@ -7,11 +7,13 @@
   "type": "module",
   "scripts": {
     "build": "bun run --workspaces --if-present build",
+    "docs:build": "bun run --workspaces --if-present docs:build && vitepress build docs && cp -R packages/orpc-vue/docs/.vitepress/dist docs/.vitepress/dist/orpc && cp -R packages/trpc-vue/docs/.vitepress/dist docs/.vitepress/dist/trpc",
+    "docs:preview": "vitepress preview docs",
     "lint": "oxlint --fix && oxfmt",
     "lint:check": "oxlint && oxfmt --check",
     "prepare": "lefthook install",
     "release": "changesets-local",
-    "release:check": "bun run build && bun run types && bun run test && bun run test:component && bun run test:nuxt",
+    "release:check": "bun run build && bun run types && bun run test && bun run test:component && bun run test:nuxt && bun run docs:build",
     "test": "bun run --workspaces --if-present test",
     "test:component": "bun run --workspaces --if-present test:component",
     "test:nuxt": "bun run --workspaces --if-present test:nuxt",
@@ -21,10 +23,12 @@
     "@changesets/cli": "^3.0.3",
     "@ilyasemenov/oxc-config": "^0.1.3",
     "@playwright/test": "1.58.2",
+    "@rpc-vue/core": "workspace:*",
     "changesets-local": "^1.6.0",
     "oxfmt": "^0.78.0",
     "oxlint": "^1.93.0",
-    "tsdown": "^0.23.7"
+    "tsdown": "^0.23.7",
+    "vitepress": "^1.6.4"
   },
   "overrides": {
     "@tanstack/query-core": "5.102.8"

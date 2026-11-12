@@ -2,6 +2,7 @@
 **/.nuxt/
 **/.nuxtrc
 **/.output/
+**/.vitepress/cache/
 
 **/dist/
 **/test-results/

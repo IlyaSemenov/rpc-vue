@@ -4,7 +4,7 @@
 
 Vue and Nuxt integrations for RPC clients.
 
-Read the affected package's README completely before changing its public API, package behavior, supported runtimes, or user documentation.
+Read the affected adapter's documentation site in its `docs/` completely before changing its public API, package behavior, supported runtimes, or user documentation.
 Each workspace package's `AGENTS.md` adds the conventions specific to that package.
 
 Extend this guide only with stable, non-obvious conventions, architecture, contracts, workflows, and gotchas.
@@ -35,10 +35,13 @@ Do not catalog files or restate information evident from their names and locatio
 
 ## Documentation
 
-- Write public README and JSDoc text for package users who do not know the implementation.
-- Keep shared Vue and Nuxt behavior consistent across both adapter READMEs; preserve differences required by their protocol APIs.
+- Keep each adapter's user documentation in the VitePress site in its `docs/`; keep its `README.md` limited to an overview, installation, one usage example and development notes, linking to the site for details.
+- Build both adapters' sites with the shared configuration in core's `docs/`, which owns their sidebar; add every new page there, as a shared page or one of the adapter's protocol pages.
+- Update the affected site pages together with a change to the public API or behavior.
+- Write public documentation and JSDoc text for package users who do not know the implementation.
+- Keep shared Vue and Nuxt behavior consistent across both adapter sites, page by page; preserve differences required by their protocol APIs.
 - Give every RPC client a distinct stable nonempty prefix in shared-cache examples so root invalidation stays within its namespace.
-- In adapter READMEs, serve RPC handlers at each protocol's official path, `/rpc` for oRPC and `/trpc` for tRPC, and keep each router in the `server/` directory of the same name.
+- In adapter documentation, serve RPC handlers at each protocol's official path, `/rpc` for oRPC and `/trpc` for tRPC, and keep each router in the `server/` directory of the same name.
 - Add JSDoc to every exported declaration and to internal helpers whose contract, inputs, output, or failure behavior is not obvious.
 - Add inline comments beside every non-obvious invariant, algorithmic choice, safety constraint, and intentionally limited behavior.
 - Update nearby JSDoc and inline comments whenever the documented code changes, and remove comments that no longer apply.
@@ -93,6 +96,7 @@ Describe the user-visible change.
 - Run the `types` script when public types or TypeScript configuration change.
 - Run the `test` script when behavior changes.
 - Run the `build` script when package exports, declarations, or supported runtimes change.
+- Run the root `docs:build` script when site pages or the VitePress configuration change.
 - Run `test:component` when changing composables, auto-imports, or a documented testing recipe; it uses the built package, so build first.
 - Run `test:nuxt` when changing Nuxt compatibility, plugin registration, or SSR hydration.
   Install the packed archive in an isolated consumer running the exact Nuxt version installed in the workspace; keep its generated configuration and dependencies outside the source workspace.
