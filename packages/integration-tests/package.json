@@ -6,7 +6,7 @@
   "scripts": {
     "test": "bun test tests/runtime",
     "test:nuxt": "bun tests/nuxt/run.ts",
-    "types": "tsc --noEmit && nuxt typecheck tests/fixtures/nuxt"
+    "types": "bun check && nuxt typecheck tests/fixtures/nuxt"
   },
   "devDependencies": {
     "@orpc/client": "2.0.0-beta.35",

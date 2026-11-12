@@ -45,7 +45,7 @@
     "test": "bun test src tests/runtime",
     "test:component": "vitest run --root tests/fixtures/nuxt",
     "test:nuxt": "bun tests/nuxt/run.ts",
-    "types": "tsc --noEmit && tsc --noEmit -p tests/tsconfig.json && nuxt typecheck tests/fixtures/nuxt",
+    "types": "bun check && bun check -p tests && nuxt typecheck tests/fixtures/nuxt",
     "prepublishOnly": "bun run build"
   },
   "dependencies": {

@@ -2,7 +2,7 @@
   "extends": "../tsconfig",
   "compilerOptions": {
     "paths": {
-      // Bun and tsc check source here; the Nuxt fixture uses its own config and built exports.
+      // Bun tests and bun check use source here; the Nuxt fixture uses its own config and built exports.
       "trpc-vue": ["../src/runtime/client.ts"],
       "trpc-vue/nuxt": ["../src/runtime/nuxt/runtime.ts"],
       "trpc-vue/nuxt/module": ["../src/module.ts"],

@@ -10,7 +10,7 @@
   },
   "scripts": {
     "test": "bun test src",
-    "types": "tsc --noEmit"
+    "types": "bun check"
   },
   "devDependencies": {
     "@nuxt/kit": "^3.14.1592 || ^4.0.1",
