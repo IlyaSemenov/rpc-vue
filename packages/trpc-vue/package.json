@@ -53,6 +53,7 @@
     "es-toolkit": "^1.52.0"
   },
   "devDependencies": {
+    "@arethetypeswrong/core": "^0.18.5",
     "@nuxt/cli": "^3.37.0",
     "@nuxt/kit": "^3.14.1592 || ^4.0.1",
     "@nuxt/test-utils": "^4.3.2",

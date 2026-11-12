@@ -14,4 +14,7 @@ export default defineConfig({
   // Emit workspace declarations together so re-exported core types are available to the bundler.
   dts: { tsc: { eager: true } },
   publint: true,
+  attw: {
+    profile: "esm-only",
+  },
 })
