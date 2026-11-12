@@ -1,5 +1,11 @@
 # orpc-vue
 
+## 0.14.0
+
+### Minor Changes
+
+- 9533aa9: The Nuxt plugin's HTTP transport rejects a call whose `fetch` fails without a response, unless its signal is aborted, with the new exported `ORPCNetworkError`.
+
 ## 0.13.1
 
 ### Patch Changes
