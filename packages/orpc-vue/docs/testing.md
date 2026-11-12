@@ -52,7 +52,7 @@ import { type Client, createClientInterceptors } from "~/orpc"
 
 export const onAuthenticationRequired = vi.fn()
 export const { client, procedures, reset } = createTestORPCClient<Client>({
-  interceptors: createClientInterceptors(onAuthenticationRequired),
+  interceptors: createClientInterceptors({ onAuthenticationRequired }),
   onUnexpectedError,
 })
 

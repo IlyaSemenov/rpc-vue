@@ -67,13 +67,19 @@ export type Client = RouterClient<typeof router>
 
 type ClientError = InferClientError<Client> | ORPCError<"AUTHENTICATION_REQUIRED", unknown>
 
+export interface ClientErrorPolicy {
+  /** Called when any procedure rejects the call because the session has expired or was revoked. */
+  onAuthenticationRequired: () => void | Promise<void>
+}
+
 export function createClientInterceptors(
-  onAuthenticationRequired: () => void | Promise<void>,
+  policy: ClientErrorPolicy,
 ): NonNullable<ORPCClientOptions<Client>["interceptors"]> {
   return [
     onError(async (error: ClientError) => {
+      // Other errors reach the caller, `.callCatching()` handlers, or `onUnexpectedError`.
       if (isDefinedError(error) && error.code === "AUTHENTICATION_REQUIRED") {
-        await onAuthenticationRequired()
+        await policy.onAuthenticationRequired()
       }
     }),
   ]
@@ -89,8 +95,11 @@ import { type Client, createClientInterceptors } from "~/orpc"
 
 export default defineNuxtPlugin<Client>(nuxtApp => ({
   url: "/rpc",
-  interceptors: createClientInterceptors(async () => {
-    await nuxtApp.runWithContext(() => navigateTo("/login"))
+  interceptors: createClientInterceptors({
+    onAuthenticationRequired: async () => {
+      // Interceptors run outside the setup context, and navigateTo() needs the Nuxt app.
+      await nuxtApp.runWithContext(() => navigateTo("/login"))
+    },
   }),
 }))
 ```
