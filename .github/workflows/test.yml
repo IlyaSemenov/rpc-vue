@@ -1,0 +1,46 @@
+name: Test
+
+on:
+  push:
+    branches: ["**"]
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup mise
+        uses: jdx/mise-action@v5
+        with:
+          version: 2026.11.7
+
+      - name: Install deps
+        run: bun install --frozen-lockfile
+
+      - name: Build packages
+        run: bun run build
+
+      - name: Typecheck packages
+        run: bun run types
+
+      - name: Test packages
+        run: bun run test
+
+      - name: Test components with Nuxt
+        run: bun run test:component
+
+      # The runner image already carries the shared libraries Chromium needs, so --with-deps would only add unused fonts.
+      - name: Install browser for Nuxt integration tests
+        run: bunx playwright install chromium-headless-shell
+
+      - name: Test packed Nuxt integrations
+        run: bun run test:nuxt
