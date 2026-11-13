@@ -1,4 +1,4 @@
-# Mutations
+# Mutations and Invalidation
 
 Use `useMutation` for actions such as creating or updating a post.
 

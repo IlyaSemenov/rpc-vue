@@ -3,35 +3,26 @@
 Call `useQuery` in `<script setup>` or a Vue component's `setup()` function.
 Use your router's procedure paths; the examples below use posts from a blog router.
 
-```ts
+```vue
+<script setup lang="ts">
 const orpc = useOrpc()
-const query = await orpc.blog.posts.get.useQuery({ id: 1 })
+const { data: post, error } = orpc.blog.posts.get.useQuery({ id: 1 })
+</script>
+
+<template>
+  <p v-if="error">Failed to load the post.</p>
+  <h1 v-else-if="post">{{ post.title }}</h1>
+  <p v-else>Loading…</p>
+</template>
 ```
 
-`query` exposes reactive state and methods, including:
+The query exposes reactive state and methods, including:
 
-- `query.data.value` contains the query result, or `undefined` before data is available.
-- `query.isPending.value` is `true` before the first success or error, even when disabled.
-- `query.error.value` contains the query error, or `null` when there is no error.
-- `query.refetch()` fetches the current query again.
-- `query.invalidate()` marks its cached result as stale and refetches it if it is active.
-
-Pass a `default` factory when the component needs a value before query data is available:
-
-```ts
-const { data: posts } = await orpc.blog.posts.list.useQuery(undefined, {
-  default: () => [],
-})
-
-// posts.value is always an array.
-```
-
-The default appears while the query has no cached data, including while it is pending, disabled, skipped, or in an error state.
-The factory runs once for each `useQuery()` call.
-The returned value is never written to the cache and does not affect fetching.
-Unlike TanStack Query's `placeholderData`, it leaves the query status pending or error and does not set `isPlaceholderData`.
-With `select`, the default has the selected result's shape.
-With `clone: true`, the default is copied into mutable local data.
+- `data` contains the query result, or `undefined` before data is available.
+- `isPending` is `true` before the first success or error, even when disabled.
+- `error` contains the query error, or `null` when there is no error.
+- `refetch()` fetches the current query again.
+- `invalidate()` marks its cached result as stale and refetches it if it is active.
 
 ## Reactive input and options
 
@@ -71,9 +62,14 @@ const query = orpc.blog.posts.get.useQuery(() =>
 
 ## Awaiting queries and server rendering
 
-You can use `useQuery` with or without `await`.
-Without it, you get the query refs immediately and can show a loading state.
-With it, you wait for the initial fetch and reject if that fetch fails.
+Await `useQuery` to wait for the initial fetch before the rest of the setup code runs:
+
+```ts
+const { data: post } = await orpc.blog.posts.get.useQuery({ id: 1 })
+```
+
+The awaited query rejects if that fetch fails.
+Without `await`, you get the query refs immediately and can show a loading state.
 During SSR, the page waits for active queries either way.
 
 Set `server: false` in the query options to fetch only after the component mounts in the browser.
@@ -85,7 +81,26 @@ It does not wait for these queries to become enabled or resume fetching.
 
 During SSR, an awaited initial error reaches Nuxt's error page.
 During client-side navigation, Nuxt does not automatically show its error page for an ordinary RPC error; use [`onUnexpectedError`](./errors#unexpected-browser-errors) to notify the user about undeclared errors.
-Set `rejectOnError: false` to resolve the await and inspect the error through `query.error.value` instead.
-Queries used without `await` also expose failures through `query.error.value`.
+Set `rejectOnError: false` to resolve the await and inspect the error through `error.value` instead.
+Queries used without `await` also expose failures through `error.value`.
 Errors from later refetches update that ref without changing the already settled initial await.
 TanStack's `throwOnError` option is not supported; use `rejectOnError`.
+
+## Default data
+
+Pass a `default` factory when the component needs a value before query data is available:
+
+```ts
+const { data: posts } = orpc.blog.posts.list.useQuery(undefined, {
+  default: () => [],
+})
+
+// posts.value is always an array.
+```
+
+The default appears while the query has no cached data, including while it is pending, disabled, skipped, or in an error state.
+The factory runs once for each `useQuery()` call.
+The returned value is never written to the cache and does not affect fetching.
+Unlike TanStack Query's `placeholderData`, it leaves the query status pending or error and does not set `isPlaceholderData`.
+With `select`, the default has the selected result's shape.
+With `clone: true`, the default is copied into mutable local data.

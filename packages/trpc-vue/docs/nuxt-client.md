@@ -79,7 +79,7 @@ Configure a transformer on your links; the HTTP options above and `transformer` 
 ## Manual client setup
 
 Use `createTRPCVueQuery` when you want SSR to call the router directly or need to own the complete client setup.
-Instead of the HTTP plugin from [Getting Started](./getting-started#nuxt-setup), add a browser plugin and a server plugin.
+Instead of the HTTP plugin from [Nuxt Quickstart](./nuxt#add-the-client-plugin), add a browser plugin and a server plugin.
 
 Keep `trpc-vue/nuxt/module` in `modules` for auto-imports and QueryClient setup.
 Both plugins provide the client under the `trpc` key: `useTrpc()` reads it as `useNuxtApp().$trpc` and infers the router type from that injection.

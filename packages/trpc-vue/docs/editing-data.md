@@ -1,4 +1,4 @@
-# Query Data
+# Editing Query Data
 
 ## Updating cached data
 

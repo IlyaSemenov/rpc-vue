@@ -37,7 +37,7 @@ export function defineAdapterSiteConfig(
     lastUpdated: true,
     themeConfig: {
       nav: [
-        { text: "Guide", link: "/getting-started" },
+        { text: "Guide", link: "/nuxt" },
         {
           text: protocol,
           // Absolute URLs with a target: the other adapter's site is outside `base`, and the target makes the router load it as another site.
@@ -53,11 +53,11 @@ export function defineAdapterSiteConfig(
         {
           text: "Guide",
           items: [
-            { text: "Getting Started", link: "/getting-started" },
-            { text: "Vue without Nuxt", link: "/vue" },
+            { text: "Nuxt Quickstart", link: "/nuxt" },
+            { text: "Vue Quickstart", link: "/vue" },
             { text: "Queries", link: "/queries" },
-            { text: "Mutations", link: "/mutations" },
-            { text: "Query Data", link: "/query-data" },
+            { text: "Mutations and Invalidation", link: "/mutations" },
+            { text: "Editing Query Data", link: "/editing-data" },
             ...options.protocolPages,
           ],
         },

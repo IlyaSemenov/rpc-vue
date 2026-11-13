@@ -1,4 +1,31 @@
-# Vue without Nuxt
+# Vue Quickstart
+
+This guide assumes an oRPC router the app can import from `./server/router` and an RPC handler serving it at `/rpc`; see the [oRPC RPC handler](https://orpc.dev/docs/rpc/handler) to set it up.
+For a Nuxt app, see [Nuxt Quickstart](./nuxt).
+
+## Install
+
+::: code-group
+
+```sh [npm]
+npm install orpc-vue @orpc/client@2.0.0-beta.35 @orpc/server@2.0.0-beta.35 @orpc/tanstack-query@2.0.0-beta.35 @tanstack/vue-query
+```
+
+```sh [pnpm]
+pnpm add orpc-vue @orpc/client@2.0.0-beta.35 @orpc/server@2.0.0-beta.35 @orpc/tanstack-query@2.0.0-beta.35 @tanstack/vue-query
+```
+
+```sh [bun]
+bun add orpc-vue @orpc/client@2.0.0-beta.35 @orpc/server@2.0.0-beta.35 @orpc/tanstack-query@2.0.0-beta.35 @tanstack/vue-query
+```
+
+:::
+
+Install oRPC by version: v2 is still in beta, and this package needs `2.0.0-beta.35` or newer.
+
+orpc-vue supports Vue 3.5 and needs TanStack Vue Query 5.102.8 or newer.
+
+## Set up the client
 
 Create a typed context for accessing the client from components:
 
@@ -39,13 +66,24 @@ app.provide(orpcContext.key, orpc)
 app.mount("#app")
 ```
 
-Use the client in a component:
+For Vue SSR, create a QueryClient and oRPC client for each request.
 
-```ts
+## First query
+
+Query a procedure in a component:
+
+```vue
+<!-- PostTitle.vue -->
+<script setup lang="ts">
 import { orpcContext } from "./orpc-context"
 
 const orpc = orpcContext.useOrpc()
-const query = orpc.blog.posts.get.useQuery({ id: 1 })
+const { data: post } = orpc.blog.posts.get.useQuery({ id: 1 })
+</script>
+
+<template>
+  <h1 v-if="post">{{ post.title }}</h1>
+</template>
 ```
 
-For Vue SSR, create a QueryClient and oRPC client for each request.
+See [Queries](./queries) for reactive input, loading states and errors.

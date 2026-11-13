@@ -85,7 +85,7 @@ The plugin setup callback has the same lifecycle: once per SSR request and once 
 ## Manual client setup
 
 Use `createORPCVueQuery` when you want SSR to call the router directly or need to own the complete client setup.
-Instead of the HTTP plugin from [Getting Started](./getting-started#nuxt-setup), add a browser plugin and a server plugin.
+Instead of the HTTP plugin from [Nuxt Quickstart](./nuxt#add-the-client-plugin), add a browser plugin and a server plugin.
 
 Keep `orpc-vue/nuxt/module` in `modules` for auto-imports and QueryClient setup.
 Both plugins provide the client under the `orpc` key: `useOrpc()` reads it as `useNuxtApp().$orpc` and infers the router type from that injection.

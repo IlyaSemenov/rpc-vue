@@ -44,6 +44,17 @@ Queries with the same `catching` codes share a cache entry and must map them to 
 Declared errors are never retried, including codes omitted from `catching`; other errors follow the `retry` option.
 An awaited query rejects when a declared error has no matching `catching` handler.
 
+### Plain oRPC clients
+
+`.callCatching()` is built on `catchORPCError()`, which handles errors of a promise returned directly by any typed oRPC client call.
+Use `catchORPCError()` when calling a plain typed oRPC client:
+
+```ts
+import { catchORPCError } from "orpc-vue"
+
+const post = await catchORPCError(client.blog.posts.get({ id }), { NOT_FOUND: null })
+```
+
 ### Application-wide policy
 
 Use a client interceptor for an application-wide policy on a declared error, such as redirecting after an expired session.
@@ -106,17 +117,6 @@ export default defineNuxtPlugin<Client>(nuxtApp => ({
 
 An interceptor runs for every client attempt before `.callCatching()` or `catching` handles a declared error.
 Keep `onUnexpectedError` for a shared notification after retries of an undeclared error.
-
-### Plain oRPC clients
-
-`.callCatching()` is built on `catchORPCError()`, which handles errors of a promise returned directly by any typed oRPC client call.
-Use `catchORPCError()` when calling a plain typed oRPC client:
-
-```ts
-import { catchORPCError } from "orpc-vue"
-
-const post = await catchORPCError(client.blog.posts.get({ id }), { NOT_FOUND: null })
-```
 
 ## Unexpected browser errors
 

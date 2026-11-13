@@ -7,10 +7,10 @@ hero:
   tagline: Add useQuery and useMutation to your tRPC procedures, with types inferred from your router.
   actions:
     - theme: brand
-      text: Get Started
-      link: /getting-started
+      text: Nuxt Quickstart
+      link: /nuxt
     - theme: alt
-      text: Vue without Nuxt
+      text: Vue Quickstart
       link: /vue
     - theme: alt
       text: GitHub
@@ -19,17 +19,19 @@ hero:
 features:
   - title: Typed from your router
     details: Procedure inputs, transformed results and formatted errors are inferred from your tRPC router.
+  - title: Reactive input
+    details: Pass a ref or getter as input; the query follows it and reuses cached results.
   - title: Server rendering
-    details: Nuxt fetches queries during server rendering, and the browser reuses their results.
-  - title: Await or show loading
-    details: Await a query to wait for its first result, or use it right away and show a loading state.
+    details: Nuxt fetches queries during server rendering, and the browser reuses their results. Await a query when setup needs its result.
   - title: Precise invalidation
-    details: Invalidate one input, a procedure, a router branch, or every query of the client.
+    details: Invalidate one input, a procedure, a router branch, or every query of the client, without building query keys.
   - title: tRPC utilities
     details: Build query, mutation and infinite query options for TanStack Vue Query from your procedures.
   - title: Component tests
-    details: Replace the client with typed procedure handlers in Nuxt component tests.
+    details: Replace procedures with typed handlers in Nuxt component tests, without starting a server.
 ---
+
+trpc-vue provides query, mutation and infinite query utilities for TanStack Vue Query, modeled on tRPC's React integration, and adds Vue composables, a Nuxt module for server rendering and a typed test client.
 
 A Nuxt page that renders a post on the server and refreshes it after a like:
 
@@ -56,4 +58,4 @@ const { mutate: like, isPending } = trpc.blog.posts.like.useMutation({
 </template>
 ```
 
-See [Getting Started](./getting-started) to set up the module.
+See [Nuxt Quickstart](./nuxt) or [Vue Quickstart](./vue) to set up the client.

@@ -1,27 +1,18 @@
-# RPC Vue & Nuxt integrations
+# rpc-vue
 
-A monorepo for RPC integrations with Vue, TanStack Query, and Nuxt.
+Type-safe RPC for Vue and Nuxt.
+Use your oRPC or tRPC procedures as TanStack Vue Query composables, with types inferred from your router.
 
-- [orpc-vue](https://ilyasemenov.github.io/rpc-vue/orpc/): for [oRPC](https://orpc.dev/) in Vue and Nuxt.
-- [trpc-vue](https://ilyasemenov.github.io/rpc-vue/trpc/): for [tRPC](https://trpc.io/) in Vue and Nuxt.
+- **Typed, reactive queries**: call router procedures in components with typed inputs and results; a query follows the ref or getter passed as its input.
+- **Server rendering**: Nuxt fetches queries during server rendering, and the browser reuses their results.
+- **Precise invalidation**: invalidate one input, a procedure, a router branch, or every query of the client, without building query keys.
+- **Component tests**: replace procedures with typed handlers in Nuxt component tests, without starting a server.
 
-## Development
+Choose the integration for your RPC library:
 
-Install dependencies with `bun install` from the repository root.
-Run the complete workspace checks in this order:
+- [orpc-vue](packages/orpc-vue/README.md) for [oRPC](https://orpc.dev/) v2, with typed handling of the errors that procedures declare ([documentation](https://ilyasemenov.github.io/rpc-vue/orpc/)).
+- [trpc-vue](packages/trpc-vue/README.md) for [tRPC](https://trpc.io/) 11, with tRPC's TanStack Query utilities, including infinite queries ([documentation](https://ilyasemenov.github.io/rpc-vue/trpc/)).
 
-```sh
-bun run build
-bun run types
-bun run test
-bun run test:component
-bunx playwright install chromium-headless-shell
-bun run test:nuxt
-```
+## Contributing
 
-`bun run test` runs the core, adapter and [cross-adapter integration](packages/integration-tests/README.md) runtime tests.
-`bun run test:nuxt` checks each adapter's archive separately and both archives together in isolated Nuxt applications.
-Use `bun run test`, not `bun test`: the package scripts select the appropriate files for each test runner.
-
-Each adapter's documentation is a VitePress site in its `docs/` directory; run `bun run docs:dev` from the adapter's directory to preview it.
-`bun run docs:build` builds both sites and the root page into the GitHub Pages site in `docs/.vitepress/dist`, and `bun run docs:preview` serves it.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the workspace checks and the development setup.

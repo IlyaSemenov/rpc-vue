@@ -35,7 +35,8 @@ Do not catalog files or restate information evident from their names and locatio
 
 ## Documentation
 
-- Keep each adapter's user documentation in the VitePress site in its `docs/`; keep its `README.md` limited to an overview, installation, one usage example and development notes, linking to the site for details.
+- Keep each adapter's user documentation in the VitePress site in its `docs/`; keep its `README.md` limited to an overview, installation and one usage example, linking to the site for details.
+- Keep development and contribution instructions for the workspace and every package in the root `CONTRIBUTING.md`.
 - Build both adapters' sites with the shared configuration in core's `docs/`, which owns their sidebar; add every new page there, as a shared page or one of the adapter's protocol pages.
 - Update the affected site pages together with a change to the public API or behavior.
 - Write public documentation and JSDoc text for package users who do not know the implementation.
