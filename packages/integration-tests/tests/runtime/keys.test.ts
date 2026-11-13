@@ -1,20 +1,32 @@
 import { expect, test } from "bun:test"
 
 import { createORPCClient } from "@orpc/client"
-import { createQueryClientConfig } from "@rpc-vue/core/nuxt/query-config"
-import { dehydrate, hydrate, QueryClient } from "@tanstack/vue-query"
+import {
+  dehydrate,
+  hashKey,
+  hydrate,
+  QueryClient,
+  type QueryClientConfig,
+  type QueryKey,
+} from "@tanstack/vue-query"
 import { createORPCVueQuery } from "orpc-vue"
 import { createTRPCVueQuery } from "trpc-vue"
 
-import { hashORPCKey } from "#orpc-vue/client/hash"
-
 import { fixture } from "./fixture"
 
-for (const owner of ["orpc", "trpc", "application"]) {
-  test(`${owner} cache owner preserves adapter hashing for imperative reads/writes`, () => {
-    const queryClient = new QueryClient(
-      owner === "orpc" ? createQueryClientConfig({}, hashORPCKey) : {},
-    )
+/** Application-owned global hashing that namespaced adapter keys must not depend on. */
+const applicationHash = (queryKey: QueryKey) => `application:${hashKey(queryKey)}`
+const applicationConfig: QueryClientConfig = {
+  defaultOptions: { queries: { queryKeyHashFn: applicationHash } },
+}
+const hashingConfigs: Record<string, QueryClientConfig> = {
+  default: {},
+  application: applicationConfig,
+}
+
+for (const [hashing, config] of Object.entries(hashingConfigs)) {
+  test(`${hashing} cache hashing preserves adapter keys for imperative reads/writes`, () => {
+    const queryClient = new QueryClient(config)
     const { trpc, dispose } = fixture("visitor", queryClient)
     const orpc = createORPCVueQuery(
       createORPCClient<{ read: (input: { value: unknown; other?: number }) => Promise<string> }>({
@@ -52,9 +64,8 @@ for (const owner of ["orpc", "trpc", "application"]) {
   })
 }
 
-for (const owner of ["orpc", "trpc", "application"]) {
-  test(`${owner} cache owner supports exact filters on unobserved hydrated namespaces`, async () => {
-    const config = owner === "orpc" ? createQueryClientConfig({}, hashORPCKey) : {}
+for (const [hashing, config] of Object.entries(hashingConfigs)) {
+  test(`${hashing} cache hashing supports exact filters on unobserved hydrated namespaces`, async () => {
     const server = fixture("server", new QueryClient(config))
     const cache = new QueryClient(config)
     let browser: ReturnType<typeof fixture> | undefined
@@ -92,15 +103,13 @@ for (const owner of ["orpc", "trpc", "application"]) {
 for (const adapter of ["oRPC", "tRPC"]) {
   for (const prefix of [undefined, ""]) {
     test(`unprefixed ${adapter} preserves hashing for existing application queries (${JSON.stringify(prefix)})`, () => {
-      // Each adapter joins a cache whose global hashing belongs to the other one.
-      const cache = new QueryClient(
-        adapter === "tRPC" ? createQueryClientConfig({}, hashORPCKey) : {},
-      )
+      const cache = new QueryClient(applicationConfig)
       const f = fixture("visitor", cache)
       try {
         const key = [["application"], { input: { id: 1 } }]
         cache.setQueryData(key, "cached")
         const before = cache.defaultQueryOptions({ queryKey: key }).queryHash
+        expect(before).toBe(applicationHash(key))
         if (adapter === "tRPC") createTRPCVueQuery(f.trpcClient, { queryClient: cache, prefix })
         else createORPCVueQuery(f.orpcClient, { queryClient: cache, prefix })
         expect(cache.defaultQueryOptions({ queryKey: key }).queryHash).toBe(before)

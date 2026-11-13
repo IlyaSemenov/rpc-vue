@@ -1,4 +1,4 @@
-import type { QueryClientConfig, QueryKey, QueryKeyHashFunction } from "@tanstack/vue-query"
+import type { QueryClientConfig } from "@tanstack/vue-query"
 
 /** Remove callbacks from module options; their closures belong in the runtime hook. */
 type StaticValue<TValue> = TValue extends ((...args: never[]) => unknown) | symbol
@@ -16,12 +16,8 @@ export type StaticQueryClientConfig = StaticValue<Pick<QueryClientConfig, "defau
  * Merge module defaults over the SSR-friendly stale time.
  *
  * @param options - Static defaults from the module's nuxt.config section.
- * @param queryKeyHashFn - Global key hashing required by the adapter, which options cannot override.
  */
-export function createQueryClientConfig(
-  options: StaticQueryClientConfig,
-  queryKeyHashFn?: QueryKeyHashFunction<QueryKey>,
-): QueryClientConfig {
+export function createQueryClientConfig(options: StaticQueryClientConfig): QueryClientConfig {
   return {
     defaultOptions: {
       ...options.defaultOptions,
@@ -29,7 +25,6 @@ export function createQueryClientConfig(
         // Reuse recently fetched SSR data instead of immediately requesting it in the browser.
         staleTime: 5_000,
         ...options.defaultOptions?.queries,
-        ...(queryKeyHashFn && { queryKeyHashFn }),
       },
     },
   }

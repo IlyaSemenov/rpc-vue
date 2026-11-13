@@ -9,12 +9,12 @@
     "types": "bun check && nuxt typecheck tests/fixtures/nuxt"
   },
   "devDependencies": {
-    "@orpc/client": "2.0.0-beta.35",
-    "@orpc/server": "2.0.0-beta.35",
-    "@orpc/tanstack-query": "2.0.0-beta.35",
+    "@orpc/client": "2.0.0-beta.50",
+    "@orpc/server": "2.0.0-beta.50",
+    "@orpc/tanstack-query": "2.0.0-beta.50",
     "@playwright/test": "1.58.2",
     "@rpc-vue/core": "workspace:*",
-    "@tanstack/vue-query": "5.102.8",
+    "@tanstack/vue-query": "5.105.0",
     "@trpc/client": "11.19.0",
     "@trpc/server": "11.19.0",
     "@tsconfig/bun": "^1.0.12",

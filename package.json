@@ -31,7 +31,7 @@
     "vitepress": "^1.6.4"
   },
   "overrides": {
-    "@tanstack/query-core": "5.102.8"
+    "@tanstack/query-core": "5.105.0"
   },
   "packageManager": "bun@1.4.4"
 }

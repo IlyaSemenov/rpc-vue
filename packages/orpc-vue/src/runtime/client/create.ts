@@ -3,13 +3,12 @@ import { createTanstackQueryUtils } from "@orpc/tanstack-query"
 import { useReactiveMutation } from "@rpc-vue/core/vue-query/mutation"
 import { useReactiveQuery } from "@rpc-vue/core/vue-query/query"
 import { captureQueryClient } from "@rpc-vue/core/vue-query/query-client"
-import type { QueryKey } from "@tanstack/vue-query"
+import { hashKey, type QueryKey } from "@tanstack/vue-query"
 
 import type { ORPCUnexpectedErrorContext, ORPCVueQueryClient, ORPCVueQueryOptions } from "../types"
 
 import { decorateClient } from "./decorate"
 import { catchDefinedErrors, isDefinedORPCError } from "./error"
-import { hashORPCKey } from "./hash"
 import { createUnexpectedErrorReporter } from "./unexpected-error"
 import { createProcedureOptions } from "./utils"
 
@@ -30,10 +29,11 @@ export function createORPCVueQuery<TClient extends AnyNestedClient>(
   const reporter =
     options.onUnexpectedError && createUnexpectedErrorReporter(options.onUnexpectedError)
   // oRPC namespaces keys even for an empty prefix; unprefixed keys keep the cache's global hashing.
+  // oRPC serializes typed input values into JSON keys, so TanStack's JSON hashing distinguishes them.
   const getQueryClient = captureQueryClient(
     options.queryClient,
     options.prefix === undefined ? undefined : utils.key(),
-    hashORPCKey,
+    hashKey,
   )
 
   /** Resolve the app cache and install reporting before the first observer starts fetching. */

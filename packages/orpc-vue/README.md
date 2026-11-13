@@ -15,12 +15,12 @@ See the [documentation](https://ilyasemenov.github.io/rpc-vue/orpc/).
 ## Install
 
 ```sh
-npm install orpc-vue @orpc/client@2.0.0-beta.35 @orpc/server@2.0.0-beta.35 @orpc/tanstack-query@2.0.0-beta.35 @tanstack/vue-query
+npm install orpc-vue @orpc/client@2.0.0-beta.50 @orpc/server@2.0.0-beta.50 @orpc/tanstack-query@2.0.0-beta.50 @tanstack/vue-query
 ```
 
-Install oRPC by version: v2 is still in beta, and this package needs `2.0.0-beta.35` or newer.
+Install oRPC by version: v2 is still in beta, and this package needs `2.0.0-beta.50` or newer.
 
-orpc-vue supports Vue 3.5 and Nuxt 3 and 4, and needs TanStack Vue Query 5.102.8 or newer.
+orpc-vue supports Vue 3.5 and Nuxt 3 and 4, and needs TanStack Vue Query 5.105.0 or newer.
 
 ## Usage
 

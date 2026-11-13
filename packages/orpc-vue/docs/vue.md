@@ -8,22 +8,22 @@ For a Nuxt app, see [Nuxt Quickstart](./nuxt).
 ::: code-group
 
 ```sh [npm]
-npm install orpc-vue @orpc/client@2.0.0-beta.35 @orpc/server@2.0.0-beta.35 @orpc/tanstack-query@2.0.0-beta.35 @tanstack/vue-query
+npm install orpc-vue @orpc/client@2.0.0-beta.50 @orpc/server@2.0.0-beta.50 @orpc/tanstack-query@2.0.0-beta.50 @tanstack/vue-query
 ```
 
 ```sh [pnpm]
-pnpm add orpc-vue @orpc/client@2.0.0-beta.35 @orpc/server@2.0.0-beta.35 @orpc/tanstack-query@2.0.0-beta.35 @tanstack/vue-query
+pnpm add orpc-vue @orpc/client@2.0.0-beta.50 @orpc/server@2.0.0-beta.50 @orpc/tanstack-query@2.0.0-beta.50 @tanstack/vue-query
 ```
 
 ```sh [bun]
-bun add orpc-vue @orpc/client@2.0.0-beta.35 @orpc/server@2.0.0-beta.35 @orpc/tanstack-query@2.0.0-beta.35 @tanstack/vue-query
+bun add orpc-vue @orpc/client@2.0.0-beta.50 @orpc/server@2.0.0-beta.50 @orpc/tanstack-query@2.0.0-beta.50 @tanstack/vue-query
 ```
 
 :::
 
-Install oRPC by version: v2 is still in beta, and this package needs `2.0.0-beta.35` or newer.
+Install oRPC by version: v2 is still in beta, and this package needs `2.0.0-beta.50` or newer.
 
-orpc-vue supports Vue 3.5 and needs TanStack Vue Query 5.102.8 or newer.
+orpc-vue supports Vue 3.5 and needs TanStack Vue Query 5.105.0 or newer.
 
 ## Set up the client
 

@@ -4,15 +4,13 @@ import {
   type StaticQueryClientConfig,
 } from "@rpc-vue/core/nuxt/query-config"
 
-import { hashORPCKey } from "../client/hash"
-
 // Include the Nuxt hook augmentation without adding a runtime import.
 import type {} from "./hooks"
 
-/** Install the module-owned cache with oRPC key hashing and its runtime customization hook. */
+/** Install the module-owned cache with its runtime customization hook. */
 export default function createQueryClientSetup(options: StaticQueryClientConfig = {}) {
   return createNuxtQueryClientSetup(
-    () => createQueryClientConfig(options, hashORPCKey),
+    () => createQueryClientConfig(options),
     (nuxtApp, config) => nuxtApp.callHook("orpc:query-client", config),
     "orpc-vue:query-cache",
   )
