@@ -11,7 +11,7 @@ export interface TestClientOptions {
 
 /** Options for one handler registration, typed by the procedure input. */
 export interface TestHandleOptions<TInput> {
-  /** Replace the test client's `copyInput` for this procedure; `false` passes the original input. */
+  /** Replace the test client's `copyInput` for this procedure; `false` disables the test client's copying. */
   copyInput?: ((input: TInput) => TInput) | false
 }
 

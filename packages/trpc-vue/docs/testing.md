@@ -73,9 +73,10 @@ Handlers replace your server procedures, so middleware, transformers and your `e
 Return what your client receives: without a transformer, for example, a `Date` output arrives as a string.
 To test formatted error data, throw a `TRPCClientError` that carries it; to test server behavior, use your real router with `unstable_localLink`.
 
-A handler receives the object that was passed to the call, and its mock keeps a reference to it.
-If your components change an input after the call, for example by clearing a submitted form, pass `copyInput` to the test client, such as `copyInput: (input) => structuredClone(toRaw(input))`, and choose a copy that suits your data.
-`.handle(handler, { copyInput })` replaces that copy for one procedure, and `copyInput: false` turns copying off.
+`.useQuery()` passes the handler a deep copy of its input that later input changes do not affect.
+Mutations and direct procedure calls pass the object itself, and the handler's mock keeps a reference to it.
+If your components change such an input after the call, for example by clearing a submitted form, pass `copyInput` to the test client, such as `copyInput: (input) => structuredClone(toRaw(input))`, and choose a copy that suits your data.
+`.handle(handler, { copyInput })` replaces that copy for one procedure, and `copyInput: false` turns that copying off.
 
 ## Outside Vue components
 
