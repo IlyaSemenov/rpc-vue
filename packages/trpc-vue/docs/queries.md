@@ -46,6 +46,22 @@ Here, changing the route ID switches to that post's query, and closing the panel
 Vue Query options such as `enabled` and `staleTime` can be reactive too.
 You can also pass the entire options object as a ref or getter.
 
+## Input copies
+
+`useQuery` deep-copies the input each time it reads it, so later changes to your object do not affect queries already created from it.
+A copied class instance keeps its prototype and own properties but loses private fields and other state stored outside them.
+To pass an object as is, such as a class instance that keeps its state in private fields, wrap it in Vue's `markRaw()`:
+
+```ts
+import { markRaw } from "vue"
+
+const query = trpc.blog.posts.list.useQuery(() => ({ author: markRaw(author.value) }))
+```
+
+Queries keep that object and pass it to every refetch, so replace it instead of changing it, and keep refs and reactive objects out of it.
+The [key and options builders](./calls#trpc-utilities) copy their input the same way; in an infinite query, wrap values inside the input rather than the input itself.
+Cache keys compare inputs by their JSON form, so give such a class a `toJSON()` method that tells its values apart.
+
 ## Waiting for input
 
 Use TanStack Query's `skipToken` when you don't have valid input yet.

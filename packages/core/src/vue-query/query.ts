@@ -28,6 +28,7 @@ import {
   type WritableComputedRef,
 } from "vue"
 
+import { cloneQueryInput } from "./input"
 import type { ResolveOptions } from "./types"
 
 /**
@@ -247,7 +248,7 @@ export function useReactiveQuery(
       throw new TypeError("clone: true cannot be combined with select.")
     }
     // Snapshot reactive input so an existing cache entry never changes its identity in place.
-    const snapshot = cloneDeep(toValue(input))
+    const snapshot = cloneQueryInput(toValue(input))
     const isEnabled = toValue(enabled)
     const { enabled: _enabled, ...built } = buildOptions(snapshot, rest)
     const observerOptions = {

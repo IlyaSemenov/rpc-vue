@@ -99,7 +99,7 @@ expect(onUnexpectedError).toHaveBeenCalledOnce()
 Handlers replace your server procedures, so middleware and input and output validation do not run.
 To test server behavior, call your real router with `createRouterClient()`.
 
-`.useQuery()` passes the handler a deep copy of its input that later input changes do not affect.
+`.useQuery()` passes the handler a [copy of its input](./queries#input-copies).
 Mutations and direct procedure calls pass the object itself, and the handler's mock keeps a reference to it.
 If your components change such an input after the call, for example by clearing a submitted form, pass `copyInput` to the test client, such as `copyInput: (input) => structuredClone(toRaw(input))`, and choose a copy that suits your data.
 `.handle(handler, { copyInput })` replaces that copy for one procedure, and `copyInput: false` turns that copying off.

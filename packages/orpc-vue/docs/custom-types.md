@@ -56,6 +56,8 @@ The plugin uses it for HTTP requests and for cache keys:
 - An input with a `Decimal` gets its own cache entry instead of sharing one with its string form.
 - Refetched data keeps the previous `Decimal` object when its value has not changed.
 
+Queries copy custom values in their input; wrap a value that keeps its state outside its own properties, such as in private fields, in [`markRaw()`](./queries#input-copies).
+
 A [custom link](./nuxt-client#custom-link) does not receive the plugin's `serializer`; pass the serializer to both the plugin options and the link.
 
 With `createORPCVueQuery()`, in a Vue app or a [manual Nuxt setup](./nuxt-client#manual-client-setup), pass it to the link and in the options:

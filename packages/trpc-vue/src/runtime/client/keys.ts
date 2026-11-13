@@ -1,5 +1,5 @@
+import { cloneQueryInput } from "@rpc-vue/core/vue-query/input"
 import { type DataTag, type QueryKey, skipToken } from "@tanstack/vue-query"
-import { cloneDeep } from "es-toolkit"
 import { isRef } from "vue"
 
 /** A tRPC key tagged with its cached data and error types for imperative cache operations. */
@@ -34,7 +34,7 @@ export function createQueryKey(
     ...namespace,
     parts,
     {
-      ...(input !== undefined && input !== skipToken ? { input: cloneDeep(input) } : {}),
+      ...(input !== undefined && input !== skipToken ? { input: cloneQueryInput(input) } : {}),
       ...(type === "any" ? {} : { type }),
     },
   ]

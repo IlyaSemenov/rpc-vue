@@ -3,7 +3,7 @@ import { expect, test } from "bun:test"
 import { type QueryKey, skipToken } from "@tanstack/vue-query"
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query"
 import { createTRPCVueQuery } from "trpc-vue"
-import { reactive, ref } from "vue"
+import { markRaw, reactive, ref } from "vue"
 
 import { fixture, router } from "./fixture"
 
@@ -53,6 +53,17 @@ test("builders snapshot reactive objects so old cache keys never change in place
     const options = trpc.blog.get.queryOptions(input)
     input.id = 2
     expect(options.queryKey).toEqual(trpc.blog.get.queryKey({ id: 1 }))
+  } finally {
+    dispose()
+  }
+})
+
+test("builders keep markRaw input in the key by reference", () => {
+  const { trpc, dispose } = fixture()
+  try {
+    const input = markRaw({ id: 1 })
+    const operation = trpc.blog.get.queryKey(input).at(-1) as { input: unknown }
+    expect(operation.input).toBe(input)
   } finally {
     dispose()
   }

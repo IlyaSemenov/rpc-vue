@@ -16,6 +16,7 @@ import {
   effectScope,
   h,
   isReadonly,
+  markRaw,
   nextTick,
   reactive,
   ref,
@@ -286,6 +287,39 @@ describe("query composable", () => {
     await nextTick()
     await query.suspense()
     expect(query.data.value?.id).toBe(2)
+  })
+
+  test("reactive class instances are snapshotted while markRaw values pass by reference", async () => {
+    class Filter {
+      constructor(public term: string) {}
+    }
+    const received: unknown[] = []
+    const queryClient = new QueryClient()
+    const scope = effectScope()
+    clients.push(queryClient)
+    scopes.push(scope)
+    const raw = markRaw({ token: "raw" })
+    const input = reactive({ filter: new Filter("a"), raw })
+    const query = scope.run(() =>
+      useReactiveQuery(input, undefined, {
+        queryClient,
+        buildOptions: snapshot => ({
+          queryKey: ["filter", snapshot],
+          queryFn: () => {
+            received.push(snapshot)
+            return (snapshot as typeof input).filter.term
+          },
+        }),
+      }),
+    )!
+    await query
+    const [entry] = queryClient.getQueryCache().findAll()
+    input.filter.term = "b"
+    await nextTick()
+    await query.suspense()
+    expect(query.data.value).toBe("b")
+    expect(entry!.queryKey).toEqual(["filter", { filter: new Filter("a"), raw }])
+    expect(received.map(snapshot => (snapshot as typeof input).raw === raw)).toEqual([true, true])
   })
 
   test("await rejects the initial error without throwing it from TanStack's watcher", async () => {

@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test"
 
 import { createORPCClient, RPCJsonSerializer } from "@orpc/client"
 import { dehydrate, hydrate, QueryClient } from "@tanstack/vue-query"
-import { effectScope } from "vue"
+import { effectScope, markRaw } from "vue"
 
 import { createORPCVueQuery } from "./create"
 
@@ -105,13 +105,13 @@ describe("custom serializer", () => {
 
   type Input = { price: Money | string; id: number }
 
-  /** Create a client whose procedure counts calls and returns the configured result. */
-  function setup(result: () => unknown = () => ({})) {
+  /** Create a client whose procedure counts calls and returns the configured result for its input. */
+  function setup(result: (input: unknown) => unknown = () => ({})) {
     let calls = 0
     const raw = createORPCClient<{ read: (input: Input) => Promise<unknown> }>({
-      async call() {
+      async call(_path, input) {
         calls++
-        return result()
+        return result(input)
       },
     })
     const cache = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } })
@@ -129,6 +129,25 @@ describe("custom serializer", () => {
       await scope.run(() => orpc.read.useQuery({ price: "1.5", id: 1 }))!
       expect(calls()).toBe(2)
       expect(cache.getQueryCache().getAll()).toHaveLength(2)
+    } finally {
+      scope.stop()
+      cache.clear()
+    }
+  })
+
+  test("passes a markRaw custom value to the procedure and keys it through the serializer", async () => {
+    let received: unknown
+    const { cache, calls, orpc } = setup(input => {
+      received = (input as Input).price
+      return {}
+    })
+    const scope = effectScope()
+    const price = markRaw(new Money("1.5"))
+    try {
+      await scope.run(() => orpc.read.useQuery({ price, id: 1 }))!
+      await scope.run(() => orpc.read.useQuery({ price: new Money("1.5"), id: 1 }))!
+      expect(calls()).toBe(1)
+      expect(received).toBe(price)
     } finally {
       scope.stop()
       cache.clear()
