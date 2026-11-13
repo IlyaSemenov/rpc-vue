@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 
-import { type Client, onError, ORPCError } from "@orpc/client"
+import { type Client, createORPCClient, onError, ORPCError, RPCJsonSerializer } from "@orpc/client"
+import { createTanstackQueryUtils } from "@orpc/tanstack-query"
 import { effectScope } from "vue"
 
 import { catchORPCError } from "./client/error"
@@ -124,5 +125,46 @@ describe("createTestORPCClient()", () => {
     }
 
     expect(paths).toEqual(["blog.posts.list", "blog.posts.list", "blog.posts.update"])
+  })
+
+  test("builds keys with the serializer while handlers receive unserialized input", async () => {
+    class Money {
+      constructor(readonly amount: string) {}
+      toJSON() {
+        return this.amount
+      }
+    }
+    const serializer = new RPCJsonSerializer({
+      handlers: {
+        money: {
+          condition: value => value instanceof Money,
+          serialize: (value: Money) => value.amount,
+          deserialize: serialized => new Money(String(serialized)),
+          isTerminal: true,
+        },
+      },
+    })
+    type PriceClient = {
+      read: Client<Record<never, never>, { price: Money | string }, number, unknown>
+    }
+    const { client, procedures, queryClient } = createTestORPCClient<PriceClient>({ serializer })
+    const read = procedures.read.handle(input => (input.price instanceof Money ? 1 : 2))
+    const production = createTanstackQueryUtils(
+      createORPCClient<PriceClient>({ call: async () => 0 }),
+      { serializer },
+    )
+    const price = new Money("1.5")
+    const scope = effectScope()
+
+    try {
+      await scope.run(() => client.read.useQuery({ price }))!
+      await scope.run(() => client.read.useQuery({ price: "1.5" }))!
+    } finally {
+      scope.stop()
+    }
+
+    expect(read.mock.calls[0]?.[0].price).toBeInstanceOf(Money)
+    expect(queryClient.getQueryData(production.read.queryKey({ input: { price } }))).toBe(1)
+    expect(queryClient.getQueryData(production.read.queryKey({ input: { price: "1.5" } }))).toBe(2)
   })
 })

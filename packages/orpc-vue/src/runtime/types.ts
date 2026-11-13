@@ -1,5 +1,5 @@
-import type { AnyNestedClient, Client, ClientContext } from "@orpc/client"
-import type { RouterUtils } from "@orpc/tanstack-query"
+import type { AnyNestedClient, Client, ClientContext, RPCJsonSerializer } from "@orpc/client"
+import type { Public, RouterUtils } from "@orpc/tanstack-query"
 import type { MutationComposable, ReactiveMutationOptions } from "@rpc-vue/core/vue-query/mutation"
 import type {
   AwaitableQuery,
@@ -46,8 +46,14 @@ export type ORPCUnexpectedErrorHandler = (
   context: ORPCUnexpectedErrorContext,
 ) => void | Promise<void>
 
-/** Configure cache ownership, namespacing and unexpected browser error reporting. */
+/** Configure cache ownership, namespacing, custom types and unexpected browser error reporting. */
 export interface ORPCVueQueryOptions extends ClientOptions {
+  /**
+   * The serializer that builds cache keys from inputs and compares refetched data.
+   * Pass the same serializer as the client's link, so inputs with custom types get keys of
+   * their own and equal custom values in refetched data keep their previous references.
+   */
+  serializer?: Public<RPCJsonSerializer>
   /** Report final failures except declared errors and cancellations; never called during SSR. */
   onUnexpectedError?: ORPCUnexpectedErrorHandler
 }

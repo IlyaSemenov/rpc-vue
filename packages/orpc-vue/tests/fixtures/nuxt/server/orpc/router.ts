@@ -1,6 +1,8 @@
 import { os } from "@orpc/server"
 import * as z from "zod"
 
+import { Money } from "~~/shared/money"
+
 const posts = {
   fail: os.handler(() => {
     throw new Error("Failed query")
@@ -53,7 +55,10 @@ const requestContext = os.$context<{
   transport: string
 }>()
 
-/** Exercise request-specific context and Date preservation across RPC and SSR payload transfer. */
+/**
+ * Exercise request-specific context, and Date and custom type preservation across RPC and SSR
+ * payload transfer.
+ */
 export const router = {
   hello: requestContext.handler(({ context }) => {
     return {
@@ -62,6 +67,16 @@ export const router = {
     }
   }),
   transport: requestContext.handler(({ context }) => context.transport),
+  prices: {
+    // Tell whether the serializer restored a Money input or the client sent its plain string.
+    describe: os
+      .input(z.object({ price: z.union([z.instanceof(Money), z.string()]) }))
+      .handler(({ input: { price } }) =>
+        price instanceof Money
+          ? { input: "money", price }
+          : { input: "string", price: new Money(price) },
+      ),
+  },
   blog: {
     posts,
     admin: {

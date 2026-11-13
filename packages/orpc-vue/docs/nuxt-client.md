@@ -82,6 +82,8 @@ The link factory receives `{ nuxtApp, event }`, where `event` is the current H3 
 It runs once per Nuxt application, so every SSR request gets its own link.
 The plugin setup callback has the same lifecycle: once per SSR request and once when the browser app starts.
 
+With a [custom serializer](./custom-types#client-setup), pass it to every link you create as well as in the plugin options.
+
 ## Manual client setup
 
 Use `createORPCVueQuery` when you want SSR to call the router directly or need to own the complete client setup.
@@ -132,3 +134,5 @@ export default defineNuxtPlugin(() => {
 
 Let both plugins infer the client type instead of annotating it.
 Nuxt combines what they provide, so a widened type in either one leaves `useOrpc()` without procedure types.
+
+With a [custom serializer](./custom-types#client-setup), pass it to the browser plugin's link and to `createORPCVueQuery()` in both plugins, so that SSR and the browser build the same cache keys.

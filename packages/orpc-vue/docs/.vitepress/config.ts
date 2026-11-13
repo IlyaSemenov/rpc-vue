@@ -5,5 +5,6 @@ export default defineAdapterSiteConfig("orpc-vue", {
   protocolPages: [
     { text: "Direct Calls and Utilities", link: "/calls" },
     { text: "Errors", link: "/errors" },
+    { text: "Custom Types", link: "/custom-types" },
   ],
 })

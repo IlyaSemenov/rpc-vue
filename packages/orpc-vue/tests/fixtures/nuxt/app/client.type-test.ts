@@ -1,4 +1,4 @@
-import type { ORPCClientOptions } from "@orpc/client"
+import { type ORPCClientOptions, RPCJsonSerializer } from "@orpc/client"
 import { RPCLink } from "@orpc/client/fetch"
 import type { RouterClient } from "@orpc/server"
 import { type QueryClient, skipToken } from "@tanstack/vue-query"
@@ -7,6 +7,7 @@ import { defineNuxtPlugin } from "orpc-vue/nuxt"
 import { reactive, ref } from "vue"
 
 import type { router } from "~~/server/orpc/router"
+import { serializer } from "~~/shared/money"
 
 /** Verify helper options at the package boundary without executing a Nuxt plugin. */
 export function checkPluginOptions() {
@@ -30,8 +31,18 @@ export function checkPluginOptions() {
   defineNuxtPlugin<RouterClient<typeof router>>(() => ({}))
   // @ts-expect-error Fetch credentials use the standard RequestCredentials values.
   defineNuxtPlugin<RouterClient<typeof router>>(() => ({ url: "/orpc", credentials: "all" }))
+  defineNuxtPlugin<RouterClient<typeof router>>(() => ({ url: "/orpc", serializer }))
+  defineNuxtPlugin<RouterClient<typeof router>>(() => ({
+    // @ts-expect-error The default HTTP link needs a serializer that also encodes request bodies.
+    serializer: new RPCJsonSerializer(),
+    url: "/orpc",
+  }))
   defineNuxtPlugin<RouterClient<typeof router>>(() => ({
     link: new RPCLink({ url: "/orpc" }),
+  }))
+  defineNuxtPlugin<RouterClient<typeof router>>(() => ({
+    link: new RPCLink({ url: "/orpc", serializer }),
+    serializer,
   }))
   defineNuxtPlugin<RouterClient<typeof router>>(() => ({
     link: ({ nuxtApp, event }) => {

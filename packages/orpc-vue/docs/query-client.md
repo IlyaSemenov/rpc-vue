@@ -27,7 +27,7 @@ export default defineNuxtConfig({
 ```
 
 Query inputs can include oRPC types such as `bigint` and `Date`; cache keys distinguish them from their JSON forms.
-For custom classes in query results, register a Nuxt payload serializer or use TanStack dehydration options to exclude those queries from the payload.
+For application-defined types in inputs and results, see [Custom Types](./custom-types).
 
 ## Runtime configuration
 

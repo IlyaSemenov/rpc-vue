@@ -4,8 +4,10 @@ import {
   createORPCClient,
   type InferClientContext,
   type ORPCClientOptions,
+  type RPCSerializer,
 } from "@orpc/client"
 import { RPCLink } from "@orpc/client/fetch"
+import type { Public } from "@orpc/tanstack-query"
 import {
   type ClientPluginOptions,
   defineClientPlugin,
@@ -30,7 +32,13 @@ export type OrpcPluginOptions<TClient extends AnyNestedClient = AnyNestedClient>
       | ((context: TransportContext) => ClientLink<InferClientContext<TClient>>)
   }> &
     Pick<ORPCVueQueryOptions, "onUnexpectedError"> &
-    Pick<ORPCClientOptions<TClient>, "interceptors">
+    Pick<ORPCClientOptions<TClient>, "interceptors"> & {
+      /**
+       * Serialize custom types in the default HTTP link and in cache keys.
+       * A custom `link` does not receive it; pass the same serializer to that link as well.
+       */
+      serializer?: Public<RPCSerializer>
+    }
 
 /**
  * Create an oRPC client per Nuxt app and provide it as $orpc with inferred router types.
@@ -48,7 +56,7 @@ export function defineNuxtPlugin<TClient extends AnyNestedClient>(
     const link =
       typeof options.link === "function"
         ? options.link(transport)
-        : (options.link ?? createHTTPLink(options))
+        : (options.link ?? createHTTPLink(options, options.serializer))
     return {
       orpc: createORPCVueQuery(
         createORPCClient<TClient>(link, {
@@ -57,6 +65,7 @@ export function defineNuxtPlugin<TClient extends AnyNestedClient>(
         {
           prefix: options.prefix,
           queryClient,
+          serializer: options.serializer,
           onUnexpectedError: options.onUnexpectedError,
         },
       ),
@@ -68,7 +77,7 @@ export function defineNuxtPlugin<TClient extends AnyNestedClient>(
  * Build the helper's default HTTP link after the custom-link branch has been excluded.
  * A `fetch` rejection of a request whose signal is not aborted becomes `ORPCNetworkError`.
  */
-function createHTTPLink(options: HttpTransportOptions) {
+function createHTTPLink(options: HttpTransportOptions, serializer?: Public<RPCSerializer>) {
   const { url, headers, fetch } = resolveHttpTransport(options, "orpc-vue")
   return new RPCLink({
     // oRPC v2 accepts the origin separately from the handler path and query string.
@@ -77,5 +86,6 @@ function createHTTPLink(options: HttpTransportOptions) {
     url: `${url.pathname}${url.search}` as `/${string}`,
     headers,
     fetch: rejectWithNetworkErrors(fetch),
+    serializer,
   })
 }

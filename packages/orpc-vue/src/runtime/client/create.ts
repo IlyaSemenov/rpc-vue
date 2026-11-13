@@ -19,17 +19,21 @@ import { createProcedureOptions } from "./utils"
  * calling its composables does require an active scope.
  *
  * @param client - The application-owned oRPC client whose router types are preserved.
- * @param options - Cache ownership, key prefix and unexpected browser error reporting.
+ * @param options - Cache ownership, key prefix, serializer and unexpected browser error reporting.
  */
 export function createORPCVueQuery<TClient extends AnyNestedClient>(
   client: TClient,
   options: ORPCVueQueryOptions = {},
 ): ORPCVueQueryClient<TClient> {
-  const utils = createTanstackQueryUtils(client, { prefix: options.prefix })
+  const utils = createTanstackQueryUtils(client, {
+    prefix: options.prefix,
+    serializer: options.serializer,
+  })
   const reporter =
     options.onUnexpectedError && createUnexpectedErrorReporter(options.onUnexpectedError)
   // oRPC namespaces keys even for an empty prefix; unprefixed keys keep the cache's global hashing.
-  // oRPC serializes typed input values into JSON keys, so TanStack's JSON hashing distinguishes them.
+  // oRPC serializes typed input values, including custom serializer types, into JSON keys,
+  // so TanStack's JSON hashing distinguishes them.
   const getQueryClient = captureQueryClient(
     options.queryClient,
     options.prefix === undefined ? undefined : utils.key(),

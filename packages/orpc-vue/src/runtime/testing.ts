@@ -85,7 +85,10 @@ export type TestORPCProcedures<TClient extends AnyNestedClient> =
           : never
       }
 
-/** Configure a test client's cache, namespacing, interceptors, error reporting and input copying. */
+/**
+ * Configure a test client's cache, namespacing, key serializer, interceptors, error reporting and
+ * input copying.
+ */
 export interface TestORPCClientOptions<TClient extends AnyNestedClient = AnyNestedClient>
   extends
     ORPCVueQueryOptions,
@@ -107,7 +110,11 @@ export type TestORPCClient<TClient extends AnyNestedClient> = TestClient<
  * Without a `queryClient` the client owns one that never retries, so a failing procedure fails
  * the test instead of retrying until it times out.
  *
- * @param options - Cache ownership, key prefix, unexpected browser error reporting and input copying.
+ * Its `serializer` builds cache keys as in production, but handlers receive the inputs and the client
+ * receives the outputs without serialization.
+ *
+ * @param options - Cache ownership, key prefix, key serializer, unexpected browser error reporting
+ *   and input copying.
  * @returns A decorated client, its typed registration tree, its cache and a reset function.
  */
 export function createTestORPCClient<TClient extends AnyNestedClient>(

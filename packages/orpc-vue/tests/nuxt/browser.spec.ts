@@ -43,3 +43,28 @@ test("hydrates a caught declared error as successful data", async ({ page }) => 
   await page.waitForLoadState("networkidle")
   expect(requests).toEqual([])
 })
+
+test("keeps SSR cache keys and payload for custom types defined by the serializer", async ({
+  page,
+}) => {
+  const errors: string[] = []
+  const requests: string[] = []
+  page.on("pageerror", error => errors.push(error.message))
+  page.on("console", message => {
+    if (message.type() === "warning" || message.type() === "error") errors.push(message.text())
+  })
+  page.on("request", request => {
+    if (new URL(request.url()).pathname.includes("prices/describe")) requests.push(request.url())
+  })
+
+  await page.goto("/custom-types")
+  // SSR HTML already has the expected texts; the browser renders them only after hydration.
+  await expect(page.locator("#hydrated")).toHaveText("true")
+  await expect(page.locator("#money-input")).toHaveText("money")
+  await expect(page.locator("#string-input")).toHaveText("string")
+  await expect(page.locator("#money-output")).toHaveText("Money 1.5")
+  await page.waitForLoadState("networkidle")
+  // The browser rebuilds the SSR keys from its inputs, so hydrated entries need no refetch.
+  expect(requests).toEqual([])
+  expect(errors).toEqual([])
+})

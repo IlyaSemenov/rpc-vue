@@ -63,6 +63,8 @@ afterEach(() => {
 })
 ```
 
+With a [custom serializer](./custom-types#testing), pass it as `serializer`, so that the test client builds the same cache keys as your app.
+
 Register the required handlers before mounting; `mountSuspended()` waits for awaited queries before assertions:
 
 ```ts

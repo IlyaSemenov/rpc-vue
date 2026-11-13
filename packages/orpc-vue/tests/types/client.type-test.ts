@@ -1,4 +1,4 @@
-import type { Client, ORPCError, PromiseWithError } from "@orpc/client"
+import { type Client, type ORPCError, type PromiseWithError, RPCSerializer } from "@orpc/client"
 import { createRouterClient, os } from "@orpc/server"
 import { QueryClient, skipToken } from "@tanstack/vue-query"
 import { catchORPCError, createORPCVueContext, createORPCVueQuery } from "orpc-vue"
@@ -227,6 +227,7 @@ async function inference() {
   const client = createRouterClient(router)
   const orpc = createORPCVueQuery(client, {
     queryClient: new QueryClient(),
+    serializer: new RPCSerializer(),
   })
   const query = orpc.get.useQuery(() => ({ id: 1 }), {
     enabled: ref(true),
