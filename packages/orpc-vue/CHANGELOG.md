@@ -1,5 +1,13 @@
 # orpc-vue
 
+## 0.15.0
+
+### Minor Changes
+
+- 0064f4c: Keep `markRaw()` values in query inputs by reference instead of copying them, so class instances with private fields work as query input.
+- 2f81b32: Support `@orpc/client` and `@orpc/tanstack-query` `2.0.0-beta.50`, which are now required along with `@tanstack/vue-query` 5.105.0 or newer, fixing `serializer.serialize is not a function` in queries of prefixed clients.
+- 6a58a2f: Add a `serializer` option to `createORPCVueQuery()`, `createTestORPCClient()` and the Nuxt client plugin, so that custom types of an oRPC serializer get distinct cache keys and keep their references in refetched data; the plugin also uses it for its HTTP link.
+
 ## 0.14.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # trpc-vue
 
+## 0.4.0
+
+### Minor Changes
+
+- 0064f4c: Keep `markRaw()` values in query inputs by reference instead of copying them, so class instances with private fields work as query input.
+
 ## 0.3.1
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "trpc-vue",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "tRPC integration for Vue and Nuxt with TanStack Vue Query composables.",
   "homepage": "https://ilyasemenov.github.io/rpc-vue/trpc/",
   "bugs": "https://github.com/IlyaSemenov/rpc-vue/issues",
