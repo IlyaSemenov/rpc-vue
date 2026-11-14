@@ -51,3 +51,47 @@ Changing the query input also switches the copy to that input's data.
 Keep a separate form draft if it must survive these updates.
 
 You cannot combine `clone: true` with `select`; selected results are readonly.
+
+## Readonly data in component props
+
+Query data is typed as deeply readonly because other components share it.
+Some UI components declare an array prop as mutable, such as `Post[]`, even though they only read it, so TypeScript rejects query data passed to them.
+
+If the component does not modify the array, pass it a shallow copy:
+
+```vue
+<script setup lang="ts">
+const orpc = useOrpc()
+const { data: posts } = orpc.blog.posts.list.useQuery(undefined)
+
+// PostTable declares `posts: Post[]` but only reads it.
+const rows = computed(() => [...(posts.value ?? [])])
+</script>
+
+<template>
+  <PostTable :posts="rows" />
+</template>
+```
+
+The copy is a new mutable array, but its elements are the cached objects, so do not modify them.
+
+To avoid the copy, change only the array's type with a helper:
+
+```ts
+/** Types a readonly array as mutable without copying it. */
+export function toMutableArray<T>(array: readonly T[]): T[] {
+  return array as T[]
+}
+```
+
+```vue
+<PostTable :posts="toMutableArray(posts ?? [])" />
+```
+
+The component then receives the cached array, which stays readonly at runtime.
+If the component modifies it, for example by sorting it in place, Vue ignores the change and warns only in development.
+
+TypeScript rejects both the copy and the helper's result if the element type contains arrays, such as `tags: string[]`, because those stay readonly.
+
+Do not enable `clone: true` only to satisfy such a prop type: it deep-copies the data on every update.
+If the component edits the data, use [mutable data](#mutable-data) or keep a separate form draft.
