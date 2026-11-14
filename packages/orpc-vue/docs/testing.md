@@ -118,6 +118,10 @@ procedures.blog.posts.update.handle((input, { errors }) => {
 })
 ```
 
+These constructors know only the error types, not the messages declared in `.errors()`.
+Without `message`, they use oRPC's generic message for the code, such as `"Forbidden"` for `FORBIDDEN`.
+To test that a component displays the server's message, pass your own message and assert on it.
+
 ## Outside Vue components
 
 You can call `.useQuery()` and `.useMutation()` outside a component, for example in a script or in a test that never mounts one.
