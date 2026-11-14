@@ -13,7 +13,6 @@
     "lint:check": "oxlint && oxfmt --check",
     "prepare": "lefthook install",
     "release": "changesets-local",
-    "release:check": "bun run build && bun run types && bun run test && bun run test:component && bun run test:nuxt && bun run docs:build",
     "test": "bun run --workspaces --if-present test",
     "test:component": "bun run --workspaces --if-present test:component",
     "test:nuxt": "bun run --workspaces --if-present test:nuxt",
