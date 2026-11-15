@@ -1,8 +1,8 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, mock, spyOn, test } from "bun:test"
 
-import { ORPCError, type PromiseWithError } from "@orpc/client"
+import { type Client, createORPCClient, ORPCError, type PromiseWithError } from "@orpc/client"
 
-import { catchORPCError } from "./error"
+import { catchORPCError, onDefinedError } from "./error"
 
 type DeclaredError =
   | ORPCError<"CONFLICT", { field: string }>
@@ -99,5 +99,128 @@ describe("catchORPCError", () => {
         throw error
       }),
     ).rejects.toBe(error)
+  })
+})
+
+describe("onDefinedError", () => {
+  type PolicyClient = {
+    get: Client<Record<never, never>, undefined, string, DeclaredError>
+  }
+
+  /** Create a client whose only procedure resolves `"ok"` or rejects with `error`. */
+  function createClient(
+    interceptor: ReturnType<typeof onDefinedError<PolicyClient>>,
+    error?: unknown,
+  ): PolicyClient {
+    const link = {
+      call: async () => {
+        if (error !== undefined) throw error
+        return "ok"
+      },
+    }
+    return createORPCClient<PolicyClient>(link, { interceptors: [interceptor] })
+  }
+
+  test("returns a successful result unchanged without calling handlers", async () => {
+    const onNotFound = mock()
+    const client = createClient(onDefinedError<PolicyClient>({ NOT_FOUND: onNotFound }))
+
+    await expect(client.get()).resolves.toBe("ok")
+    expect(onNotFound).not.toHaveBeenCalled()
+  })
+
+  test("rejects with the original error only after the matching handler settles", async () => {
+    const error = definedError("NOT_FOUND", { id: 1 })
+    const { promise: handlerDone, resolve: finishHandler } = Promise.withResolvers<void>()
+    const handled: number[] = []
+    const client = createClient(
+      onDefinedError<PolicyClient>({
+        NOT_FOUND: async caught => {
+          handled.push(caught.data.id)
+          await handlerDone
+        },
+      }),
+      error,
+    )
+    let settled = false
+    const call = client.get().finally(() => {
+      settled = true
+    })
+
+    await Bun.sleep(0)
+    expect(handled).toEqual([1])
+    expect(settled).toBe(false)
+
+    finishHandler()
+    await expect(call).rejects.toBe(error)
+  })
+
+  test("handles an extra code that the client does not declare", async () => {
+    const error = new ORPCError("AUTHENTICATION_REQUIRED", { message: "Sign in" })
+    Reflect.set(error, "defined", true)
+    const onAuthenticationRequired = mock()
+    const client = createClient(
+      onDefinedError<PolicyClient, "AUTHENTICATION_REQUIRED">({
+        AUTHENTICATION_REQUIRED: onAuthenticationRequired,
+      }),
+      error,
+    )
+
+    await expect(client.get()).rejects.toBe(error)
+    expect(onAuthenticationRequired).toHaveBeenCalledWith(error)
+  })
+
+  test("ignores a handler inherited by the handlers object", async () => {
+    const error = definedError("NOT_FOUND", { id: 1 })
+    const onNotFound = mock()
+    const handlers = Object.create({ NOT_FOUND: onNotFound }) as Record<never, never>
+    const client = createClient(onDefinedError<PolicyClient>(handlers), error)
+
+    await expect(client.get()).rejects.toBe(error)
+    expect(onNotFound).not.toHaveBeenCalled()
+  })
+
+  test("ignores other declared codes, undeclared ORPCErrors and other errors", async () => {
+    const onNotFound = mock()
+    const interceptor = onDefinedError<PolicyClient>({ NOT_FOUND: onNotFound })
+    const errors = [
+      definedError("CONFLICT", { field: "title" }),
+      new ORPCError("NOT_FOUND", { message: "Missing" }),
+      new Error("Database unavailable"),
+    ]
+
+    for (const error of errors) {
+      await expect(createClient(interceptor, error).get()).rejects.toBe(error)
+    }
+    expect(onNotFound).not.toHaveBeenCalled()
+  })
+
+  test("logs a failing handler and rejects with the original error", async () => {
+    const error = definedError("NOT_FOUND", { id: 1 })
+    const handlerError = new Error("Navigation failed")
+    const consoleError = spyOn(console, "error").mockImplementation(() => {})
+    const handlers = {
+      throwing: () => {
+        throw handlerError
+      },
+      rejecting: async () => {
+        await Promise.resolve()
+        throw handlerError
+      },
+    }
+
+    try {
+      for (const [kind, handler] of Object.entries(handlers)) {
+        const client = createClient(onDefinedError<PolicyClient>({ NOT_FOUND: handler }), error)
+
+        await expect(client.get(), kind).rejects.toBe(error)
+      }
+      expect(consoleError.mock.calls).toEqual([
+        ["orpc-vue: onDefinedError handler failed", handlerError],
+        ["orpc-vue: onDefinedError handler failed", handlerError],
+      ])
+    } finally {
+      consoleError.mockRestore()
+    }
   })
 })

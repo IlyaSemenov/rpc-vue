@@ -6,6 +6,7 @@ import {
   type ORPCClientOptions,
   type ORPCError,
 } from "@orpc/client"
+import { onDefinedError } from "orpc-vue"
 import { createTestORPCClient } from "orpc-vue/testing"
 
 type AppClient = {
@@ -35,6 +36,9 @@ const declaredErrorInterceptor: NonNullable<
 })
 
 createTestORPCClient<DeclaredClient>({ interceptors: [declaredErrorInterceptor] })
+createTestORPCClient<DeclaredClient>({
+  interceptors: [onDefinedError<DeclaredClient>({ MISSING: error => error.data.id })],
+})
 
 /** Build an app-wide policy for a declared code that no procedure of `DeclaredClient` declares. */
 function createAppPolicy(

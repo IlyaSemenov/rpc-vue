@@ -1,8 +1,13 @@
 import {
+  type AnyNestedClient,
   type AnyORPCError,
   type ClientContext,
   type FriendlyClientOptions,
+  type InferClientContext,
+  type InferClientError,
   isDefinedError,
+  type ORPCClientInterceptor,
+  type ORPCError,
 } from "@orpc/client"
 
 type ErrorOf<TPromise extends Promise<unknown>> = TPromise extends {
@@ -140,4 +145,61 @@ export function catchDefinedErrors(
     const handler = handlers[error.code]
     return typeof handler === "function" ? handler(error) : handler
   })
+}
+
+// Distribute over the union so each extra code gets its own error branch for handler narrowing.
+type ExtraDefinedError<TCode extends string> = TCode extends string
+  ? ORPCError<TCode, unknown>
+  : never
+
+/**
+ * Listeners keyed by the codes declared in the client error union `TError`.
+ * Without codes, every key is rejected: an empty mapped type would accept any object.
+ */
+type DefinedErrorListeners<TError> = [DefinedErrorCode<TError>] extends [never]
+  ? Record<string, never>
+  : Partial<{
+      [Code in DefinedErrorCode<TError>]: (
+        error: Extract<DefinedError<TError>, { code: Code }>,
+      ) => unknown
+    }>
+
+/**
+ * Create a client interceptor that calls the matching handler when a procedure rejects with a declared error.
+ * Use it for an application-wide policy, such as redirecting to the login page after a session expires.
+ *
+ * The call still rejects with the original error after the awaited handler completes, so `.callCatching()` and `catching` handlers at the call site run afterwards.
+ * The interceptor runs for each call attempt, including query retries.
+ * A failing handler is logged with `console.error` and does not replace the call's error.
+ *
+ * @typeParam TClient - The oRPC client type whose declared error codes the handler keys may use.
+ * Required: without it, every handler key is rejected.
+ * @typeParam TExtraCode - Codes to handle even while no procedure of `TClient` declares them.
+ * @param handlers - Handlers keyed by declared error code.
+ * @returns An interceptor for the `interceptors` option of an oRPC client.
+ */
+export function onDefinedError<
+  TClient extends AnyNestedClient = never,
+  TExtraCode extends string = never,
+>(
+  handlers: DefinedErrorListeners<InferClientError<TClient> | ExtraDefinedError<TExtraCode>>,
+): ORPCClientInterceptor<InferClientContext<TClient>, unknown, unknown, InferClientError<TClient>>
+
+export function onDefinedError(
+  handlers: Record<string, ((error: AnyORPCError) => unknown) | undefined>,
+): (options: { next: () => Promise<unknown> }) => Promise<unknown> {
+  return async ({ next }) => {
+    try {
+      return await next()
+    } catch (error) {
+      if (isDefinedORPCError(error) && Object.hasOwn(handlers, error.code)) {
+        try {
+          await handlers[error.code]?.(error)
+        } catch (handlerError) {
+          console.error("orpc-vue: onDefinedError handler failed", handlerError)
+        }
+      }
+      throw error
+    }
+  }
 }

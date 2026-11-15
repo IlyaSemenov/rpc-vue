@@ -2,7 +2,7 @@ import { type ORPCClientOptions, RPCJsonSerializer } from "@orpc/client"
 import { RPCLink } from "@orpc/client/fetch"
 import type { RouterClient } from "@orpc/server"
 import { type QueryClient, skipToken } from "@tanstack/vue-query"
-import { catchORPCError, createORPCVueContext } from "orpc-vue"
+import { catchORPCError, createORPCVueContext, onDefinedError } from "orpc-vue"
 import { defineNuxtPlugin } from "orpc-vue/nuxt"
 import { reactive, ref } from "vue"
 
@@ -27,6 +27,21 @@ export function checkPluginOptions() {
     prefix: "blog",
     interceptors,
   }))
+  defineNuxtPlugin<RouterClient<typeof router>>(() => ({
+    url: "/orpc",
+    interceptors: [
+      onDefinedError<RouterClient<typeof router>, "AUTHENTICATION_REQUIRED">({
+        CONFLICT: error => {
+          error.data.field satisfies string
+        },
+        AUTHENTICATION_REQUIRED: () => {},
+      }),
+    ],
+  }))
+  // @ts-expect-error onDefinedError retains declared error codes after declaration emission.
+  onDefinedError<RouterClient<typeof router>>({ FORBIDDEN: () => {} })
+  // @ts-expect-error The published declaration still requires the client type.
+  onDefinedError({ NOT_FOUND: () => {} })
   // @ts-expect-error The RPC handler URL is required.
   defineNuxtPlugin<RouterClient<typeof router>>(() => ({}))
   // @ts-expect-error Fetch credentials use the standard RequestCredentials values.

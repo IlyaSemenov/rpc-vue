@@ -57,47 +57,36 @@ const post = await catchORPCError(client.blog.posts.get({ id }), { NOT_FOUND: nu
 
 ### Application-wide policy
 
-Use a client interceptor for an application-wide policy on a declared error, such as redirecting after an expired session.
-`InferClientError` only includes codes that some procedure of the router declares, so add each code the policy handles to its error type.
-The policy then keeps compiling while no procedure declares that code.
+Use `onDefinedError()` for an application-wide policy on a declared error, such as redirecting after an expired session.
+It creates a client interceptor that calls the matching handler when a procedure rejects with a declared error.
 Define it in a module shared by the plugin and [component tests](./testing#component-tests):
 
 ```ts
 // app/orpc.ts
-import {
-  type InferClientError,
-  isDefinedError,
-  onError,
-  type ORPCClientOptions,
-  type ORPCError,
-} from "@orpc/client"
 import type { RouterClient } from "@orpc/server"
+import { onDefinedError } from "orpc-vue"
 import type { router } from "~~/server/rpc/router"
 
 export type Client = RouterClient<typeof router>
-
-type ClientError = InferClientError<Client> | ORPCError<"AUTHENTICATION_REQUIRED", unknown>
 
 export interface ClientErrorPolicy {
   /** Called when any procedure rejects the call because the session has expired or was revoked. */
   onAuthenticationRequired: () => void | Promise<void>
 }
 
-export function createClientInterceptors(
-  policy: ClientErrorPolicy,
-): NonNullable<ORPCClientOptions<Client>["interceptors"]> {
+export function createClientInterceptors(policy: ClientErrorPolicy) {
   return [
-    onError(async (error: ClientError) => {
-      // Other errors reach the caller, `.callCatching()` handlers, or `onUnexpectedError`.
-      if (isDefinedError(error) && error.code === "AUTHENTICATION_REQUIRED") {
-        await policy.onAuthenticationRequired()
-      }
+    onDefinedError<Client, "AUTHENTICATION_REQUIRED">({
+      AUTHENTICATION_REQUIRED: policy.onAuthenticationRequired,
     }),
   ]
 }
 ```
 
-The Nuxt plugin accepts the same `interceptors` option as `createORPCClient()`:
+Handler keys are the codes that some procedure of the router declares, and each handler receives the error narrowed to its code.
+The second type argument adds codes independently of router declarations, so the policy can handle `AUTHENTICATION_REQUIRED` before any procedure declares it.
+
+The Nuxt plugin accepts the same `interceptors` option as `createORPCClient()` and applies it during SSR as well as in the browser:
 
 ```ts
 // app/plugins/orpc.ts
@@ -115,7 +104,10 @@ export default defineNuxtPlugin<Client>(nuxtApp => ({
 }))
 ```
 
-An interceptor runs for every client attempt before `.callCatching()` or `catching` handles a declared error.
+- The interceptor runs for every client attempt, before `.callCatching()` or `catching` handles a declared error.
+- The call waits for the handler and then rejects with the original error.
+- A handler that throws is logged with `console.error` and does not replace the call's error.
+
 Keep `onUnexpectedError` for a shared notification after retries of an undeclared error.
 
 ## Unexpected browser errors

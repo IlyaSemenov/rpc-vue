@@ -1,7 +1,14 @@
-import { type Client, type ORPCError, type PromiseWithError, RPCSerializer } from "@orpc/client"
-import { createRouterClient, os } from "@orpc/server"
+import {
+  type Client,
+  createORPCClient,
+  type ORPCError,
+  type PromiseWithError,
+  RPCSerializer,
+} from "@orpc/client"
+import { RPCLink } from "@orpc/client/fetch"
+import { createRouterClient, os, type RouterClient } from "@orpc/server"
 import { QueryClient, skipToken } from "@tanstack/vue-query"
-import { catchORPCError, createORPCVueContext, createORPCVueQuery } from "orpc-vue"
+import { catchORPCError, createORPCVueContext, createORPCVueQuery, onDefinedError } from "orpc-vue"
 import { expectTypeOf } from "vitest"
 import { createSSRApp, reactive, ref } from "vue"
 import * as z from "zod"
@@ -85,6 +92,41 @@ async function definedErrorInference() {
   // @ts-expect-error A plain Promise has no phantom procedure error type.
   catchORPCError(Promise.resolve({ id: 1 }), { NOT_FOUND: undefined })
   void invalidPromiseCode
+}
+
+/** Verify onDefinedError keys handlers by the codes declared anywhere in a nested router. */
+function onDefinedErrorInference() {
+  type AppClient = RouterClient<typeof router>
+
+  const interceptor = onDefinedError<AppClient>({
+    CONFLICT: error => {
+      error.code satisfies "CONFLICT"
+      error.data.field satisfies string
+      // @ts-expect-error The handler receives only the matching error branch.
+      error.code satisfies "NOT_FOUND"
+    },
+    NOT_FOUND: async () => {},
+  })
+  createORPCClient<AppClient>(new RPCLink({ url: "/rpc" }), { interceptors: [interceptor] })
+
+  onDefinedError<AppClient, "AUTHENTICATION_REQUIRED" | "ADMIN_REQUIRED">({
+    AUTHENTICATION_REQUIRED: error => {
+      error.code satisfies "AUTHENTICATION_REQUIRED"
+    },
+    ADMIN_REQUIRED: error => {
+      error.code satisfies "ADMIN_REQUIRED"
+    },
+    NOT_FOUND: () => {},
+  })
+
+  // @ts-expect-error Handler keys are limited to declared and extra codes.
+  onDefinedError<AppClient>({ FORBIDDEN: () => {} })
+  // @ts-expect-error Handlers are functions; the call still rejects, so there is no result value.
+  onDefinedError<AppClient>({ NOT_FOUND: null })
+  // @ts-expect-error The client type is required to know the declared codes.
+  onDefinedError({ NOT_FOUND: () => {} })
+  // @ts-expect-error A client without declared errors accepts no handler keys.
+  onDefinedError<RouterClient<{ ping: typeof procedures.ping }>>({ NOT_FOUND: () => {} })
 }
 
 /** Verify callCatching applies catchORPCError's handler typing to the procedure call. */
@@ -511,4 +553,5 @@ void nestedInference
 void contextInference
 void vueContextInference
 void definedErrorInference
+void onDefinedErrorInference
 void callCatchingInference
