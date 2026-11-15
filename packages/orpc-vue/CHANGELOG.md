@@ -1,5 +1,11 @@
 # orpc-vue
 
+## 0.16.0
+
+### Minor Changes
+
+- 040904b: Add `onDefinedError()`, which creates a client interceptor that runs handlers keyed by declared error codes for an application-wide error policy.
+
 ## 0.15.0
 
 ### Minor Changes
