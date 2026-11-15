@@ -73,6 +73,14 @@ const { client, procedures } = createTestORPCClient<AppClient>({
     // @ts-expect-error A global hook cannot assume any procedure's input type.
     void context.input.id
   },
+  onUnhandledDefinedError(error, context) {
+    error.code satisfies string
+    error.data satisfies unknown
+    context.source satisfies "mutation"
+    context.path satisfies readonly string[]
+    // @ts-expect-error A global hook cannot assume any procedure's input type.
+    void context.input.id
+  },
 })
 
 procedures.admin.posts.get.handle(async (input, { errors }) => {

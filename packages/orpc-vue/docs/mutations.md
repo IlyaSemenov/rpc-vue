@@ -20,6 +20,7 @@ await mutation.mutateAsync({ title: "New post" })
 - `mutation.error.value` contains the mutation error, or `null` when there is no error.
 
 The `onSuccess` callback above refreshes active post queries after creating a post.
+To notify the user about declared errors of `mutate()` calls without `onError`, use [`onUnhandledDefinedError`](./errors#unhandled-declared-errors).
 
 ## Invalidation
 

@@ -9,6 +9,7 @@ import {
 import type { ORPCUnexpectedErrorContext, ORPCUnexpectedErrorHandler } from "../types"
 
 import { isDefinedORPCError } from "./error"
+import { runErrorHook } from "./error-hook"
 
 /**
  * Report final failures of this decorated client without changing cache callbacks or state.
@@ -33,16 +34,7 @@ export function createUnexpectedErrorReporter(handler: ORPCUnexpectedErrorHandle
     )
       return
 
-    // Neither a synchronous throw nor an async rejection may replace the operation's error.
-    try {
-      void Promise.resolve(handler(error, context)).catch(reportHookError)
-    } catch (hookError) {
-      reportHookError(hookError)
-    }
-  }
-
-  function reportHookError(error: unknown) {
-    console.error("orpc-vue: onUnexpectedError failed", error)
+    runErrorHook("onUnexpectedError", () => handler(error, context))
   }
 
   return {

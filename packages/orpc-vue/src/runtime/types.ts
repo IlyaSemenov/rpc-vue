@@ -1,4 +1,10 @@
-import type { AnyNestedClient, Client, ClientContext, RPCJsonSerializer } from "@orpc/client"
+import type {
+  AnyNestedClient,
+  Client,
+  ClientContext,
+  ORPCError,
+  RPCJsonSerializer,
+} from "@orpc/client"
 import type { Public, RouterUtils } from "@orpc/tanstack-query"
 import type { MutationComposable, ReactiveMutationOptions } from "@rpc-vue/core/vue-query/mutation"
 import type {
@@ -46,7 +52,23 @@ export type ORPCUnexpectedErrorHandler = (
   context: ORPCUnexpectedErrorContext,
 ) => void | Promise<void>
 
-/** Configure cache ownership, namespacing, custom types and unexpected browser error reporting. */
+/** The mutation whose declared error is being reported. */
+export interface ORPCUnhandledDefinedErrorContext {
+  /** The decorated client API that started the operation. */
+  readonly source: "mutation"
+  /** Procedure path segments, without the cache namespace prefix. */
+  readonly path: readonly string[]
+  /** Procedure input; it may contain sensitive application data. */
+  readonly input: unknown
+}
+
+/** Report a declared mutation error without handling or replacing it. */
+export type ORPCUnhandledDefinedErrorHandler = (
+  error: ORPCError<string, unknown>,
+  context: ORPCUnhandledDefinedErrorContext,
+) => void | Promise<void>
+
+/** Configure cache ownership, namespacing, custom types and browser error reporting. */
 export interface ORPCVueQueryOptions extends ClientOptions {
   /**
    * The serializer that builds cache keys from inputs and compares refetched data.
@@ -56,6 +78,12 @@ export interface ORPCVueQueryOptions extends ClientOptions {
   serializer?: Public<RPCJsonSerializer>
   /** Report final failures except declared errors and cancellations; never called during SSR. */
   onUnexpectedError?: ORPCUnexpectedErrorHandler
+  /**
+   * Report declared errors of `mutate()` calls whose `useMutation()` options lack `onError` at
+   * failure and whose own `onError` did not run, unless Vue Query threw them into Vue;
+   * never called during SSR.
+   */
+  onUnhandledDefinedError?: ORPCUnhandledDefinedErrorHandler
 }
 
 /**

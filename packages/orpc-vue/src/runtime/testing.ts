@@ -113,7 +113,7 @@ export type TestORPCClient<TClient extends AnyNestedClient> = TestClient<
  * Its `serializer` builds cache keys as in production, but handlers receive the inputs and the client
  * receives the outputs without serialization.
  *
- * @param options - Cache ownership, key prefix, key serializer, unexpected browser error reporting
+ * @param options - Cache ownership, key prefix, key serializer, browser error reporting
  *   and input copying.
  * @returns A decorated client, its typed registration tree, its cache and a reset function.
  */

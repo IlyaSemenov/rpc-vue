@@ -10,6 +10,8 @@ export type {
   ORPCSelectedQueryResult,
   ORPCUnexpectedErrorContext,
   ORPCUnexpectedErrorHandler,
+  ORPCUnhandledDefinedErrorContext,
+  ORPCUnhandledDefinedErrorHandler,
   ORPCVueQueryClient,
   ORPCVueQueryOptions,
 } from "./types"

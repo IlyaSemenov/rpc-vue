@@ -10,6 +10,7 @@ import type { ORPCUnexpectedErrorContext, ORPCVueQueryClient, ORPCVueQueryOption
 import { decorateClient } from "./decorate"
 import { catchDefinedErrors, isDefinedORPCError } from "./error"
 import { createUnexpectedErrorReporter } from "./unexpected-error"
+import { createUnhandledDefinedErrorReporter } from "./unhandled-defined-error"
 import { createProcedureOptions } from "./utils"
 
 /**
@@ -19,7 +20,7 @@ import { createProcedureOptions } from "./utils"
  * calling its composables does require an active scope.
  *
  * @param client - The application-owned oRPC client whose router types are preserved.
- * @param options - Cache ownership, key prefix, serializer and unexpected browser error reporting.
+ * @param options - Cache ownership, key prefix, serializer and browser error reporting.
  */
 export function createORPCVueQuery<TClient extends AnyNestedClient>(
   client: TClient,
@@ -93,6 +94,8 @@ export function createORPCVueQuery<TClient extends AnyNestedClient>(
           },
           settings,
           observedQueryClient(),
+          options.onUnhandledDefinedError &&
+            createUnhandledDefinedErrorReporter(options.onUnhandledDefinedError, path),
         ),
       callCatching: (input: unknown, handlers: Record<string, unknown>, callOptions: unknown) =>
         call(input, callOptions, "callCatching", handlers),

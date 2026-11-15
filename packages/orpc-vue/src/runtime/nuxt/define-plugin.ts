@@ -31,7 +31,7 @@ export type OrpcPluginOptions<TClient extends AnyNestedClient = AnyNestedClient>
       | ClientLink<InferClientContext<TClient>>
       | ((context: TransportContext) => ClientLink<InferClientContext<TClient>>)
   }> &
-    Pick<ORPCVueQueryOptions, "onUnexpectedError"> &
+    Pick<ORPCVueQueryOptions, "onUnexpectedError" | "onUnhandledDefinedError"> &
     Pick<ORPCClientOptions<TClient>, "interceptors"> & {
       /**
        * Serialize custom types in the default HTTP link and in cache keys.
@@ -67,6 +67,7 @@ export function defineNuxtPlugin<TClient extends AnyNestedClient>(
           queryClient,
           serializer: options.serializer,
           onUnexpectedError: options.onUnexpectedError,
+          onUnhandledDefinedError: options.onUnhandledDefinedError,
         },
       ),
     }

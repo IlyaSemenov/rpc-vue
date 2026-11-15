@@ -88,7 +88,6 @@ export function createClientInterceptors(
 ): NonNullable<ORPCClientOptions<Client>["interceptors"]> {
   return [
     onError(async (error: ClientError) => {
-      // Other errors reach the caller, `.callCatching()` handlers, or `onUnexpectedError`.
       if (isDefinedError(error) && error.code === "AUTHENTICATION_REQUIRED") {
         await policy.onAuthenticationRequired()
       }
@@ -126,7 +125,7 @@ It receives the error and `{ source, path, input }`, where `source` is `"call"`,
 
 - The hook runs even when your code catches the error; calls still reject and query or mutation state keeps the error.
 - It runs in the browser once per failed call, mutation or query fetch, after retries, including initial awaited queries and refetches.
-- It does not run for declared errors, even without a matching handler, for cancellations, or during SSR.
+- It does not run for declared errors, even without a matching handler, for cancellations, or during SSR; see [Unhandled declared errors](#unhandled-declared-errors) for declared errors of mutations.
 - It covers `.call()`, `.callCatching()`, `.useQuery()` and `.useMutation()`; upstream `queryOptions()`, `mutationOptions()` and direct calls of the raw oRPC client are not reported.
 
 With [Nuxt UI's `useToast()`](https://ui.nuxt.com/docs/composables/use-toast), call it during plugin setup:
@@ -164,3 +163,40 @@ Use it to tell connection problems apart from failed requests, in `onUnexpectedE
 
 A call whose `signal` is aborted, including by `AbortSignal.timeout()`, keeps its original rejection.
 The plugin does not add `ORPCNetworkError` to a [custom link](./nuxt-client#custom-link) or a [manual client setup](./nuxt-client#manual-client-setup); their transport determines how `fetch` rejections reach the caller.
+
+## Unhandled declared errors
+
+Set `onUnhandledDefinedError` next to `onUnexpectedError` to show a shared notification for declared errors of mutations without an `onError` handler, following the rules below.
+It receives the error and `{ source, path, input }`, where `source` is `"mutation"`.
+`input` may contain sensitive data such as passwords; do not log or send it.
+
+It runs in the browser once for each `mutate()` call that rejects with a declared error, unless one of these applies:
+
+- The `useMutation()` options have `onError`, including from the QueryClient's mutation defaults.
+- Vue Query called the `onError` passed to that `mutate()` call.
+  It calls it only for the latest call while the component is mounted, so it misses a call followed by another `mutate()` or `reset()`, or one that fails after unmounting.
+- Vue Query threw the error into Vue's error handling because of `throwOnError`.
+
+The `useMutation()` options in effect when the mutation fails decide, after its `onError` and `onSettled` callbacks have run.
+When reactive options add or remove `onError` while the mutation is still pending, the hook follows the options at failure, even if that `onError` has not run for this mutation.
+
+Showing `mutation.error` in a template, `onSettled` and a global `MutationCache` `onError` do not count as handling; add `onError` to such a mutation to opt it out.
+`mutateAsync()`, `.call()` and `.callCatching()` reject to your code, and queries keep their error in `error`, so the hook does not report them.
+
+```ts
+// app/plugins/orpc.ts
+import type { RouterClient } from "@orpc/server"
+import { defineNuxtPlugin } from "orpc-vue/nuxt"
+import type { router } from "~~/server/rpc/router"
+
+export default defineNuxtPlugin<RouterClient<typeof router>>(() => {
+  const toast = useToast()
+
+  return {
+    url: "/rpc",
+    onUnhandledDefinedError(error) {
+      toast.add({ title: "Request failed", description: error.message, color: "error" })
+    },
+  }
+})
+```

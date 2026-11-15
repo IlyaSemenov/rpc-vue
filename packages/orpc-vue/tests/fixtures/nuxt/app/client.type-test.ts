@@ -26,6 +26,10 @@ export function checkPluginOptions() {
     forwardHeaders: ["cookie"],
     prefix: "blog",
     interceptors,
+    onUnhandledDefinedError(error, context) {
+      error.code satisfies string
+      context.source satisfies "mutation"
+    },
   }))
   // @ts-expect-error The RPC handler URL is required.
   defineNuxtPlugin<RouterClient<typeof router>>(() => ({}))
