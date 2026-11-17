@@ -4,7 +4,7 @@
 
 Vue and Nuxt integrations for RPC clients.
 
-Read the affected adapter's documentation site in its `docs/` completely before changing its public API, package behavior, supported runtimes, or user documentation.
+Before changing an adapter's public API, package behavior, supported runtimes, or user documentation, read the pages of its documentation site in its `docs/` that the change affects.
 Each workspace package's `AGENTS.md` adds the conventions specific to that package.
 
 Extend this guide only with stable, non-obvious conventions, architecture, contracts, workflows, and gotchas.
